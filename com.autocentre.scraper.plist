@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.autocentre.scraper.plist
+  Installation (une seule fois, depuis Terminal) :
+    cp ~/Desktop/site\ web\ autocentre/com.autocentre.scraper.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.autocentre.scraper.plist
+
+  Désactivation :
+    launchctl unload ~/Library/LaunchAgents/com.autocentre.scraper.plist
+
+  Logs :
+    cat ~/Library/Logs/autocentre_scraper.log
+
+  Le scraper tourne toutes les 2 heures quand le Mac est allumé.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.autocentre.scraper</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/chaudryakhtar/Desktop/site web autocentre/mac_run.sh</string>
+    </array>
+
+    <!-- Toutes les 2 heures (7200 secondes) -->
+    <key>StartInterval</key>
+    <integer>7200</integer>
+
+    <!-- Lancer au login si la tâche était active -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Sortie standard -->
+    <key>StandardOutPath</key>
+    <string>/Users/chaudryakhtar/Library/Logs/autocentre_scraper_stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/chaudryakhtar/Library/Logs/autocentre_scraper_stderr.log</string>
+</dict>
+</plist>
