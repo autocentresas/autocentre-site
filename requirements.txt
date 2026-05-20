@@ -1,2 +1,4 @@
 playwright==1.44.0
 playwright-stealth==1.0.6
+curl-cffi>=0.6.2
+beautifulsoup4>=4.12.0
