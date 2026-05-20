@@ -1,54 +1,36 @@
 name: 🚗 Sync véhicules La Centrale
 
+# Ce workflow est déclenché manuellement (workflow_dispatch) ou automatiquement
+# quand le Mac pousse vehicules.json via l'API GitHub.
+#
+# ⚠️  Le scraping automatique s'exécute sur le MAC (pas sur GitHub Actions)
+#     car La Centrale utilise DataDome qui bloque les IPs de datacenter.
+#     → Installer com.autocentre.scraper.plist sur le Mac pour l'automatisation.
+
 on:
-  schedule:
-    - cron: '0 * * * *'   # toutes les heures, 24h/24
-  workflow_dispatch:        # déclenchement manuel depuis l'onglet Actions
+  workflow_dispatch:       # Déclenchement manuel depuis l'onglet Actions
+  push:
+    paths:
+      - 'vehicules.json'   # Se déclenche aussi quand le Mac pousse du JSON
 
 permissions:
   contents: write
 
 jobs:
-  sync:
+  notify:
     runs-on: ubuntu-22.04
-    timeout-minutes: 25
-
+    timeout-minutes: 2
     steps:
-      - name: 📥 Checkout du dépôt
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🐍 Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: 📦 Installer Playwright + Chromium + stealth
+      - name: 📊 Vérifier vehicules.json
         run: |
-          pip install -r requirements.txt
-          playwright install chromium
-          playwright install-deps chromium
-
-      - name: 🖥️ Démarrer affichage virtuel (Xvfb)
-        run: |
-          sudo apt-get install -y xvfb > /dev/null 2>&1
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 2
-          echo "Xvfb démarré sur :99"
-
-      - name: 🔍 Scraper pros.lacentrale.fr/C054723
-        env:
-          DISPLAY: ':99'
-        run: python scraper.py
-
-      - name: 💾 Commit vehicules.json si modifié
-        run: |
-          git config --local user.email "autocentre-bot@users.noreply.github.com"
-          git config --local user.name "Autocentre Bot"
-          git add vehicules.json
-          if git diff --staged --quiet; then
-            echo "Aucun changement — site déjà à jour."
-          else
-            git commit -m "🚗 Véhicules mis à jour — $(date '+%d/%m/%Y %H:%M')"
-            git push
-          fi
+          echo "=== État vehicules.json ==="
+          python3 -c "
+          import json
+          with open('vehicules.json') as f:
+              d = json.load(f)
+          print(f'Dernière MAJ : {d.get(\"derniere_maj\",\"jamais\")}')
+          print(f'Véhicules    : {len(d.get(\"vehicules\",[]))}')
+          "
