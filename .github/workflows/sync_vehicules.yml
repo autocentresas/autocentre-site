@@ -1,0 +1,45 @@
+name: 🚗 Sync véhicules La Centrale
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # toutes les heures, 24h/24
+  workflow_dispatch:        # déclenchement manuel depuis l'onglet Actions
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: 🐍 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Installer Playwright + Chromium
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: 🔍 Scraper pros.lacentrale.fr/C054723
+        run: python scraper.py
+
+      - name: 💾 Commit vehicules.json si modifié
+        run: |
+          git config --local user.email "autocentre-bot@users.noreply.github.com"
+          git config --local user.name "Autocentre Bot"
+          git add vehicules.json
+          if git diff --staged --quiet; then
+            echo "Aucun changement — site déjà à jour."
+          else
+            git commit -m "🚗 Véhicules mis à jour — $(date '+%d/%m/%Y %H:%M')"
+            git push
+          fi
