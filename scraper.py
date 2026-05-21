@@ -15,7 +15,7 @@ Lancer manuellement : python3 scraper.py
 Automatisation Mac  : launchd (voir com.autocentre.scraper.plist)
 """
 
-import json, os, re, sys, time, base64, subprocess
+import json, os, re, sys, time, base64, subprocess, random
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
@@ -224,7 +224,11 @@ def scraper():
             # Attendre que DataDome laisse passer (max 45s)
             passed = False
             for i in range(45):
-                title = page.title()
+                try:
+                    title = page.title()
+                except Exception as e:
+                    print(f"  Erreur lecture titre ({i}s) : {e}")
+                    break
                 if title and title not in ("lacentrale.fr", "pros.lacentrale.fr", ""):
                     print(f"  Page chargée ({i}s) : {title[:60]}")
                     passed = True
@@ -234,7 +238,7 @@ def scraper():
                 time.sleep(1)
 
             if not passed:
-                print("  DataDome non résolu — scraping annulé")
+                print("  DataDome non résolu — scraping annulé (données inchangées)")
                 browser.close()
                 return 0
 
@@ -249,53 +253,126 @@ def scraper():
                 except Exception:
                     pass
 
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(2000)
 
-            # ── Page 1 ───────────────────────────────────────────────────────
+            # ── Page 1 : scroll humain avant d'extraire ──────────────────────
+            # Simuler la lecture : scroll progressif
+            for scroll_pct in [25, 50, 75, 100, 50]:
+                page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {scroll_pct/100}, behavior: 'smooth'}})")
+                page.wait_for_timeout(random.randint(300, 600))
+
             v = page.evaluate(EXTRACT_JS)
             vehicules_en_ligne.extend(v)
             print(f"  Page  1 : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
+
+            # Remonter en haut pour voir la pagination
+            page.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})")
+            page.wait_for_timeout(800)
 
             # Découvrir le nombre de pages depuis la pagination
             page_nums = set()
             try:
                 hrefs = page.eval_on_selector_all(
-                    '.pagination__desktop a[href]',
+                    'a[href*="page="]',
                     'els => els.map(a => a.getAttribute("href"))'
                 )
                 for h in hrefs:
                     m = re.search(r'page=(\d+)', h or "")
-                    if m: page_nums.add(int(m.group(1)))
+                    if m:
+                        n = int(m.group(1))
+                        if n >= 2:  # ignorer page=0 ou page=1
+                            page_nums.add(n)
             except Exception:
                 pass
             max_page = max(page_nums) if page_nums else 1
             print(f"  Pages détectées : {sorted(page_nums)} → scraping jusqu'à page {max_page}")
 
             # ── Pages 2 à max_page ──────────────────────────────────────────
-            for pnum in range(2, max_page + 1):
+            pnum = 2
+            datadome_consec = 0   # compteur d'échecs consécutifs DataDome
+            stop = False
+
+            while pnum <= max_page and not stop:
                 try:
-                    url_pag = PAGE_PAG.format(pnum)
-                    page.goto(url_pag, wait_until="domcontentloaded", timeout=30000)
-                    page.wait_for_timeout(1200)
+                    clicked = False
+
+                    # Stratégie 1 : cliquer sur le lien de pagination (plus humain)
+                    try:
+                        link = page.locator(f'a[href*="page={pnum}"]').first
+                        if link.is_visible(timeout=2000):
+                            link.scroll_into_view_if_needed()
+                            page.wait_for_timeout(random.randint(400, 800))
+                            box = link.bounding_box()
+                            if box:
+                                page.mouse.move(
+                                    box["x"] + box["width"] / 2 + random.randint(-5, 5),
+                                    box["y"] + box["height"] / 2 + random.randint(-3, 3)
+                                )
+                                page.wait_for_timeout(random.randint(200, 400))
+                            link.click()
+                            page.wait_for_load_state("domcontentloaded", timeout=30000)
+                            page.wait_for_timeout(random.randint(1800, 2800))
+                            clicked = True
+                    except Exception:
+                        pass
+
+                    # Stratégie 2 : navigation directe (fallback)
+                    if not clicked:
+                        url_pag = PAGE_PAG.format(pnum)
+                        page.goto(url_pag, wait_until="domcontentloaded", timeout=30000)
+                        page.wait_for_timeout(random.randint(2000, 3000))
 
                     title = page.title()
-                    if title in ("lacentrale.fr", ""):
-                        print(f"  Page {pnum:2d} : DataDome! Arrêt.")
-                        break
+                    if title.lower() in ("lacentrale.fr", "pros.lacentrale.fr", "") or "datadome" in title.lower():
+                        datadome_consec += 1
+                        print(f"  Page {pnum:2d} : DataDome! (titre: '{title}') — échec {datadome_consec}/3")
+                        if datadome_consec >= 3:
+                            print("  DataDome persistant — arrêt du scraping")
+                            stop = True
+                            break
+                        # Retourner sur la page principale pour régénérer la session
+                        print(f"  Retour page principale + attente 25s...")
+                        time.sleep(25)
+                        page.goto(PAGE_PRO, wait_until="domcontentloaded", timeout=60000)
+                        page.wait_for_timeout(random.randint(3000, 5000))
+                        # Scroll pour simuler la lecture
+                        page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.5, behavior: 'smooth'})")
+                        page.wait_for_timeout(1500)
+                        # Réessayer la même page (ne pas incrémenter pnum)
+                        continue
+
+                    datadome_consec = 0  # succès → réinitialiser le compteur
+
+                    # Scroll humain sur la page
+                    for scroll_pct in [30, 70, 100, 50]:
+                        page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {scroll_pct/100}, behavior: 'smooth'}})")
+                        page.wait_for_timeout(random.randint(250, 500))
 
                     v = page.evaluate(EXTRACT_JS)
                     vehicules_en_ligne.extend(v)
                     print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
 
                     if len(v) == 0:
+                        print(f"  Page {pnum:2d} vide — arrêt")
+                        stop = True
                         break
-                    time.sleep(1.5)  # pause polie (évite le rate-limiting DataDome)
+
+                    # Scroll bas pour voir la pagination suivante
+                    page.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})")
+                    page.wait_for_timeout(random.randint(600, 1000))
+
+                    # Pause aléatoire entre les pages (comportement humain)
+                    pause = random.uniform(2.5, 4.0)
+                    time.sleep(pause)
+                    pnum += 1
 
                 except PWTimeout:
                     print(f"  Page {pnum}: timeout — arrêt")
+                    stop = True
                     break
                 except Exception as e:
                     print(f"  Page {pnum}: erreur {e}")
+                    stop = True
                     break
 
         except PWTimeout:
@@ -305,6 +382,13 @@ def scraper():
             import traceback; traceback.print_exc()
         finally:
             browser.close()
+
+    # ── Garde-fou : ne jamais écraser si 0 véhicule récupéré ─────────────────
+    if not vehicules_en_ligne:
+        nb_existants = len(data_initiale.get("vehicules", []))
+        print(f"\n⚠️  Aucun véhicule récupéré (DataDome probable).")
+        print(f"   Conservation des {nb_existants} véhicule(s) existants — aucun changement.")
+        return 0
 
     # ── Dédoublonnage ──────────────────────────────────────────────────────────
     vus = {}
