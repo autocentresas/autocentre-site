@@ -22,7 +22,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/chaudryakhtar/Desktop/site web autocentre/mac_run.sh</string>
+        <string>/Users/chaudryakhtar/autocentre/mac_run.sh</string>
     </array>
 
     <!-- Toutes les 2 heures (7200 secondes) -->
