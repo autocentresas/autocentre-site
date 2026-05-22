@@ -24,8 +24,11 @@ DEALER_ID   = "C054723"
 PAGE_PRO    = f"https://pros.lacentrale.fr/{DEALER_ID}"
 PAGE_PAG    = f"https://pros.lacentrale.fr/{DEALER_ID}/index?freetext_conversationid=&options=&page={{}}&vertical=car"
 DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules.json")
+PHOTOS_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 GITHUB_REPO = "autocentresas/autocentre-site"
 GITHUB_PATH = "vehicules.json"
+
+os.makedirs(PHOTOS_DIR, exist_ok=True)
 
 # ─── Utilitaires ───────────────────────────────────────────────────────────────
 
@@ -80,44 +83,60 @@ def get_github_token():
 
     return ""
 
+def push_file_to_github(token, headers, local_path, remote_path, message):
+    """Pousse un fichier unique vers GitHub via l'API."""
+    import urllib.request
+    api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{remote_path}"
+    req = urllib.request.Request(api_url, headers=headers)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            sha = json.loads(resp.read()).get("sha", "")
+    except Exception:
+        sha = ""
+    with open(local_path, "rb") as f:
+        content = base64.b64encode(f.read()).decode()
+    payload = json.dumps({"message": message, "content": content, "sha": sha}).encode()
+    req2 = urllib.request.Request(api_url, data=payload, headers=headers, method="PUT")
+    with urllib.request.urlopen(req2) as resp:
+        return json.loads(resp.read()).get("commit", {}).get("sha", "")[:10]
+
 def push_to_github(token):
-    """Pousse vehicules.json vers GitHub via l'API."""
+    """Pousse vehicules.json + photos nouvelles vers GitHub via l'API."""
     if not token:
         print("  [GitHub] Token non disponible — skip push")
         return False
     try:
         import urllib.request
-        api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_PATH}"
         headers = {
             "Authorization": f"token {token}",
             "Content-Type": "application/json",
             "User-Agent": "autocentre-scraper/1.0"
         }
-        # Récupérer le SHA actuel
-        req = urllib.request.Request(api_url, headers=headers)
-        try:
-            with urllib.request.urlopen(req) as resp:
-                current = json.loads(resp.read())
-                sha = current.get("sha", "")
-        except Exception:
-            sha = ""
+        # 1) Pousser vehicules.json
+        sha = push_file_to_github(
+            token, headers, DATA_FILE, GITHUB_PATH,
+            f"🚗 Véhicules mis à jour — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        )
+        print(f"  [GitHub] ✓ vehicules.json → commit {sha}")
 
-        # Préparer le contenu
-        with open(DATA_FILE, "rb") as f:
-            content = base64.b64encode(f.read()).decode()
-
-        payload = json.dumps({
-            "message": f"🚗 Véhicules mis à jour — {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-            "content": content,
-            "sha": sha
-        }).encode()
-
-        req2 = urllib.request.Request(api_url, data=payload, headers=headers, method="PUT")
-        with urllib.request.urlopen(req2) as resp:
-            result = json.loads(resp.read())
-            commit_sha = result.get("commit", {}).get("sha", "")[:10]
-            print(f"  [GitHub] ✓ Commit {commit_sha}")
-            return True
+        # 2) Pousser les nouvelles photos (celles présentes localement)
+        pushed_photos = 0
+        for fname in os.listdir(PHOTOS_DIR):
+            if not fname.endswith(".jpg"):
+                continue
+            local_photo = os.path.join(PHOTOS_DIR, fname)
+            remote_photo = f"photos/{fname}"
+            try:
+                push_file_to_github(
+                    token, headers, local_photo, remote_photo,
+                    f"📸 Photo {fname}"
+                )
+                pushed_photos += 1
+            except Exception as e:
+                print(f"  [GitHub] Photo {fname} : {e}")
+        if pushed_photos:
+            print(f"  [GitHub] ✓ {pushed_photos} photo(s) poussée(s)")
+        return True
     except Exception as e:
         print(f"  [GitHub] Erreur push : {e}")
         return False
@@ -216,6 +235,40 @@ def scraper():
         """)
 
         page = ctx.new_page()
+
+        # ── Intercepter les images La Centrale pour les sauvegarder localement ──
+        photos_intercepted = {}  # ref_id → chemin local
+
+        def handle_response(response):
+            """Capture les images des véhicules au vol pendant le chargement de page."""
+            try:
+                url = response.url
+                if "pictures.lacentrale.fr" not in url:
+                    return
+                if response.status != 200:
+                    return
+                m = re.search(r'W(\d+)_STANDARD_0', url)
+                if not m:
+                    return
+                ref_id = m.group(1)
+                # ID complet = commençant par "871034" + ref_id
+                full_id = "871034" + ref_id  # sera mis à jour avec le vrai ID
+                local_path = os.path.join(PHOTOS_DIR, f"ref_{ref_id}.jpg")
+                if os.path.exists(local_path) and os.path.getsize(local_path) > 5000:
+                    photos_intercepted[ref_id] = local_path
+                    return
+                try:
+                    body = response.body()
+                    if len(body) > 5000:
+                        with open(local_path, "wb") as f:
+                            f.write(body)
+                        photos_intercepted[ref_id] = local_path
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        page.on("response", handle_response)
 
         try:
             print(f"\nChargement de {PAGE_PRO} …")
@@ -322,7 +375,14 @@ def scraper():
                         page.goto(url_pag, wait_until="domcontentloaded", timeout=30000)
                         page.wait_for_timeout(random.randint(2000, 3000))
 
-                    title = page.title()
+                    try:
+                        title = page.title()
+                    except Exception:
+                        # Browser fermé par DataDome → arrêt propre
+                        print(f"  Page {pnum:2d} : navigateur fermé par DataDome — arrêt")
+                        stop = True
+                        break
+
                     if title.lower() in ("lacentrale.fr", "pros.lacentrale.fr", "") or "datadome" in title.lower():
                         datadome_consec += 1
                         print(f"  Page {pnum:2d} : DataDome! (titre: '{title}') — échec {datadome_consec}/3")
@@ -333,11 +393,16 @@ def scraper():
                         # Retourner sur la page principale pour régénérer la session
                         print(f"  Retour page principale + attente 25s...")
                         time.sleep(25)
-                        page.goto(PAGE_PRO, wait_until="domcontentloaded", timeout=60000)
-                        page.wait_for_timeout(random.randint(3000, 5000))
-                        # Scroll pour simuler la lecture
-                        page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.5, behavior: 'smooth'})")
-                        page.wait_for_timeout(1500)
+                        try:
+                            page.goto(PAGE_PRO, wait_until="domcontentloaded", timeout=60000)
+                            page.wait_for_timeout(random.randint(3000, 5000))
+                            page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.5, behavior: 'smooth'})")
+                            page.wait_for_timeout(1500)
+                        except Exception:
+                            # Browser fermé pendant le retry → arrêt propre
+                            print(f"  Navigateur fermé pendant retry — arrêt")
+                            stop = True
+                            break
                         # Réessayer la même page (ne pas incrémenter pnum)
                         continue
 
@@ -399,6 +464,38 @@ def scraper():
             vus[v["id"]] = v
 
     vehicules_en_ligne = list(vus.values())
+
+    # ── Téléchargement des photos manquantes ──────────────────────────────────
+    # Les photos La Centrale ont hotlink protection → on les stocke sur GitHub
+    print("\nTéléchargement des photos…")
+    photos_dl = 0
+    try:
+        for v in vehicules_en_ligne:
+            vid = v.get("id", "")
+            if not vid:
+                continue
+            local_photo = os.path.join(PHOTOS_DIR, f"{vid}.jpg")
+
+            # 1) Déjà téléchargée localement ?
+            if os.path.exists(local_photo) and os.path.getsize(local_photo) > 5000:
+                v["photo_local"] = f"photos/{vid}.jpg"
+                continue
+
+            # 2) Interceptée par Playwright ? (renommer ref_XXXXXX.jpg → ID.jpg)
+            photo_url = v.get("photo", "")
+            ref_m = re.search(r'W(\d+)_STANDARD_0', photo_url) if photo_url else None
+            if ref_m:
+                ref_id = ref_m.group(1)
+                ref_path = os.path.join(PHOTOS_DIR, f"ref_{ref_id}.jpg")
+                if ref_id in photos_intercepted and os.path.exists(ref_path):
+                    os.rename(ref_path, local_photo)
+                    v["photo_local"] = f"photos/{vid}.jpg"
+                    photos_dl += 1
+                    continue
+
+    except Exception as e:
+        print(f"  Erreur photos interceptées : {e}")
+    print(f"  {photos_dl} photo(s) capturée(s) via navigateur")
 
     # ── Diff ───────────────────────────────────────────────────────────────────
     nouveaux = [v for v in vehicules_en_ligne if v["id"] not in ids_existants]
