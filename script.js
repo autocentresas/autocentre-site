@@ -121,9 +121,11 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
       // Trie du plus récent au plus ancien (ordre d'insertion)
       grid.innerHTML = liste.map((v, i) => {
         const isNew   = i < 3;
-        const details = [v.annee, v.km].filter(Boolean).join(' · ');
-        const imgHtml = v.photo
-          ? `<img src="${escHtml(v.photo)}" alt="${escHtml(v.titre)}" loading="lazy"
+        const details = [v.annee, v.km, v.carburant].filter(Boolean).join(' · ');
+        // photo_local = image stockée sur GitHub (priorité) ; photo = URL La Centrale (fallback)
+        const imgSrc  = v.photo_local || v.photo || '';
+        const imgHtml = imgSrc
+          ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(v.titre)}" loading="lazy"
                onerror="this.parentElement.innerHTML='<div class=stock-img-placeholder><svg viewBox=\\'0 0 48 48\\' fill=\\'none\\'><circle cx=\\'24\\' cy=\\'24\\' r=\\'20\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'/><path d=\\'M14 30l6-10 5 7 3-4 6 7H14z\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'/></svg></div>'" />`
           : `<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>`;
 
