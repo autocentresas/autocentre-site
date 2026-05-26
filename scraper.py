@@ -1,21 +1,17 @@
 """
 Scraper La Centrale — Autocentre C054723
 =========================================
-Conçu pour tourner sur le Mac en tâche de fond (launchd).
-Utilise Playwright en mode NON-HEADLESS pour contourner DataDome.
+Stratégie hybride :
+  1. Playwright NON-HEADLESS → page 1 (passe DataDome) + récupère les cookies de session
+  2. curl-cffi + BeautifulSoup → pages 2-20 avec les cookies du navigateur
+     (évite d'ouvrir une fenêtre Chrome pour chaque page)
+  3. Si curl-cffi échoue → retry Playwright (fallback)
 
-Fonctionnement :
-  1. Ouvre Chrome (fenêtre visible brièvement)
-  2. Parcourt toutes les pages de pros.lacentrale.fr/C054723
-  3. Extrait jusqu'à 200 véhicules (titre, prix, km, année, photo, URL)
-  4. Enregistre vehicules.json localement
-  5. Si changement détecté → push automatique sur GitHub
-
+Automatisation Mac : launchd via ~/autocentre/mac_run.sh (toutes les 2h)
 Lancer manuellement : python3 scraper.py
-Automatisation Mac  : launchd (voir com.autocentre.scraper.plist)
 """
 
-import json, os, re, sys, time, base64, subprocess, random
+import json, os, re, sys, time, base64, random
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
@@ -59,18 +55,9 @@ def nettoyer_km(txt):
     return m.group(0).strip() if m else txt.strip()
 
 def get_github_token():
-    """
-    Récupère le token GitHub.
-    Ordre de priorité :
-      1. Variable d'environnement GITHUB_TOKEN (définie par mac_run.sh via keychain)
-      2. Fichier ~/.autocentre_token (fallback manuel)
-    """
-    # 1) Variable d'environnement (définie par le shell script)
     token = os.environ.get("GITHUB_TOKEN", "").strip()
     if token and token.startswith("ghp_"):
         return token
-
-    # 2) Fichier local
     token_file = os.path.expanduser("~/.autocentre_token")
     if os.path.exists(token_file):
         try:
@@ -80,11 +67,9 @@ def get_github_token():
                 return token
         except Exception:
             pass
-
     return ""
 
 def push_file_to_github(token, headers, local_path, remote_path, message):
-    """Pousse un fichier unique vers GitHub via l'API."""
     import urllib.request
     api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{remote_path}"
     req = urllib.request.Request(api_url, headers=headers)
@@ -101,7 +86,6 @@ def push_file_to_github(token, headers, local_path, remote_path, message):
         return json.loads(resp.read()).get("commit", {}).get("sha", "")[:10]
 
 def push_to_github(token):
-    """Pousse vehicules.json + photos nouvelles vers GitHub via l'API."""
     if not token:
         print("  [GitHub] Token non disponible — skip push")
         return False
@@ -112,14 +96,12 @@ def push_to_github(token):
             "Content-Type": "application/json",
             "User-Agent": "autocentre-scraper/1.0"
         }
-        # 1) Pousser vehicules.json
         sha = push_file_to_github(
             token, headers, DATA_FILE, GITHUB_PATH,
             f"🚗 Véhicules mis à jour — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         )
         print(f"  [GitHub] ✓ vehicules.json → commit {sha}")
 
-        # 2) Pousser les nouvelles photos (celles présentes localement)
         pushed_photos = 0
         for fname in os.listdir(PHOTOS_DIR):
             if not fname.endswith(".jpg"):
@@ -133,7 +115,7 @@ def push_to_github(token):
                 )
                 pushed_photos += 1
             except Exception as e:
-                print(f"  [GitHub] Photo {fname} : {e}")
+                pass
         if pushed_photos:
             print(f"  [GitHub] ✓ {pushed_photos} photo(s) poussée(s)")
         return True
@@ -141,7 +123,7 @@ def push_to_github(token):
         print(f"  [GitHub] Erreur push : {e}")
         return False
 
-# ─── Extraction JS (injecté dans la page Playwright) ──────────────────────────
+# ─── Extraction JS (Playwright, injecté dans la page) ─────────────────────────
 
 EXTRACT_JS = r"""
 () => {
@@ -160,25 +142,19 @@ EXTRACT_JS = r"""
             const id = idM ? idM[1] : href.slice(-12);
             const url = 'https://pros.lacentrale.fr' + href;
 
-            // Photo principale (première img)
             const img = card.querySelector('img');
             let photo = img ? (img.getAttribute('src') || '') : '';
-            // Augmenter la résolution
             photo = photo.replace(/size=\d+x\d+/, 'size=640x480');
 
-            // Titre
             const titreEl = card.querySelector('[class*="vehiclecardV2_title"]');
             const titre = titreEl ? titreEl.textContent.trim() : '';
 
-            // Version/sous-titre
             const subEl = card.querySelector('[class*="vehiclecardV2_subTitle"]');
             const version = subEl ? subEl.textContent.trim() : '';
 
-            // Prix
             const prixEl = card.querySelector('[class*="vehiclecardV2_vehiclePrice__"]');
             const prix = prixEl ? prixEl.textContent.trim() : '';
 
-            // Détails (year, km, fuel, gearbox) via classe Text_Text_body-medium
             const texts = Array.from(card.querySelectorAll('[class*="Text_Text_body-medium"]'))
                 .map(el => el.textContent.trim()).filter(t => t && t.length > 1);
 
@@ -195,6 +171,77 @@ EXTRACT_JS = r"""
 }
 """
 
+# ─── Extraction HTML (BeautifulSoup, pour curl-cffi) ──────────────────────────
+
+def extraire_via_html(html):
+    """Extrait les véhicules depuis HTML brut (server-rendered)."""
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    vus = set()
+    res = []
+
+    # Chercher toutes les cartes véhicules
+    for a in soup.find_all("a", attrs={"data-testid": "vehicleCardV2"}):
+        try:
+            href = a.get("href", "")
+            if not href or href in vus:
+                continue
+            vus.add(href)
+
+            id_m = re.search(r"/annonce/(\d+)", href)
+            vid = id_m.group(1) if id_m else href[-12:]
+            url = "https://pros.lacentrale.fr" + href
+
+            # Chercher la carte parente
+            card = a
+            for _ in range(5):  # remonter jusqu'à 5 niveaux
+                card = card.parent
+                if card and card.get("class") and any("searchCard" in c for c in card.get("class", [])):
+                    break
+
+            # Photo
+            img = card.find("img") if card else None
+            photo = img.get("src", "") if img else ""
+            photo = re.sub(r"size=\d+x\d+", "size=640x480", photo)
+
+            # Titre
+            titre_el = card.find(class_=re.compile(r"vehiclecardV2_title")) if card else None
+            titre = titre_el.get_text(strip=True) if titre_el else ""
+
+            # Version
+            sub_el = card.find(class_=re.compile(r"vehiclecardV2_subTitle")) if card else None
+            version = sub_el.get_text(strip=True) if sub_el else ""
+
+            # Prix
+            prix_el = card.find(class_=re.compile(r"vehiclecardV2_vehiclePrice")) if card else None
+            prix = prix_el.get_text(strip=True) if prix_el else ""
+
+            # Détails
+            texts = []
+            if card:
+                for el in card.find_all(class_=re.compile(r"Text_Text_body-medium")):
+                    t = el.get_text(strip=True)
+                    if t and len(t) > 1:
+                        texts.append(t)
+
+            annee = next((t for t in texts if re.match(r"^(19|20)\d{2}$", t)), "")
+            km    = next((t for t in texts if re.search(r"\d[\d\s]*\s*km", t, re.I)), "")
+            carb  = next((t for t in texts if re.search(r"diesel|essence|hybride|electrique|électrique|gpl", t, re.I)), "")
+            boite = next((t for t in texts if re.match(r"^auto$|^automatique$|^manuelle?$|^mec$", t.strip(), re.I)), "")
+
+            if not titre and not prix:
+                continue
+            res.append({"id": vid, "titre": titre, "version": version, "url": url,
+                        "photo": photo, "prix": prix, "km": km, "annee": annee,
+                        "carburant": carb, "boite": boite})
+        except Exception:
+            pass
+    return res
+
 # ─── Scraper principal ─────────────────────────────────────────────────────────
 
 def scraper():
@@ -207,10 +254,13 @@ def scraper():
     print(f"{'='*55}")
 
     vehicules_en_ligne = []
+    session_cookies = []   # cookies récupérés depuis Playwright
+    max_page = 1
 
+    # ── Phase 1 : Playwright — page 1 + cookies DataDome ──────────────────────
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,   # Non-headless OBLIGATOIRE pour passer DataDome
+            headless=False,
             args=[
                 "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
@@ -236,51 +286,41 @@ def scraper():
 
         page = ctx.new_page()
 
-        # ── Intercepter les images La Centrale pour les sauvegarder localement ──
-        photos_intercepted = {}  # ref_id → chemin local
-
+        # Intercepter photos
+        photos_intercepted = {}
         def handle_response(response):
-            """Capture les images des véhicules au vol pendant le chargement de page."""
             try:
                 url = response.url
-                if "pictures.lacentrale.fr" not in url:
-                    return
-                if response.status != 200:
+                if "pictures.lacentrale.fr" not in url or response.status != 200:
                     return
                 m = re.search(r'W(\d+)_STANDARD_0', url)
                 if not m:
                     return
                 ref_id = m.group(1)
-                # ID complet = commençant par "871034" + ref_id
-                full_id = "871034" + ref_id  # sera mis à jour avec le vrai ID
                 local_path = os.path.join(PHOTOS_DIR, f"ref_{ref_id}.jpg")
                 if os.path.exists(local_path) and os.path.getsize(local_path) > 5000:
                     photos_intercepted[ref_id] = local_path
                     return
-                try:
-                    body = response.body()
-                    if len(body) > 5000:
-                        with open(local_path, "wb") as f:
-                            f.write(body)
-                        photos_intercepted[ref_id] = local_path
-                except Exception:
-                    pass
+                body = response.body()
+                if len(body) > 5000:
+                    with open(local_path, "wb") as f:
+                        f.write(body)
+                    photos_intercepted[ref_id] = local_path
             except Exception:
                 pass
-
         page.on("response", handle_response)
 
         try:
-            print(f"\nChargement de {PAGE_PRO} …")
+            print(f"\n[Phase 1] Chargement de {PAGE_PRO} …")
             page.goto(PAGE_PRO, wait_until="domcontentloaded", timeout=60000)
 
-            # Attendre que DataDome laisse passer (max 45s)
+            # Attendre DataDome (max 45s)
             passed = False
             for i in range(45):
                 try:
                     title = page.title()
                 except Exception as e:
-                    print(f"  Erreur lecture titre ({i}s) : {e}")
+                    print(f"  Erreur titre ({i}s) : {e}")
                     break
                 if title and title not in ("lacentrale.fr", "pros.lacentrale.fr", ""):
                     print(f"  Page chargée ({i}s) : {title[:60]}")
@@ -295,7 +335,7 @@ def scraper():
                 browser.close()
                 return 0
 
-            # Bannière cookies
+            # Cookies
             for txt in ["Tout accepter", "Accepter tout", "Accepter", "J'accepte"]:
                 try:
                     btn = page.locator(f'button:has-text("{txt}")').first
@@ -308,21 +348,22 @@ def scraper():
 
             page.wait_for_timeout(2000)
 
-            # ── Page 1 : scroll humain avant d'extraire ──────────────────────
-            # Simuler la lecture : scroll progressif
-            for scroll_pct in [25, 50, 75, 100, 50]:
-                page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {scroll_pct/100}, behavior: 'smooth'}})")
+            # Scroll humain page 1
+            for pct in [25, 50, 75, 100, 60]:
+                page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
                 page.wait_for_timeout(random.randint(300, 600))
 
+            # Extraire page 1
             v = page.evaluate(EXTRACT_JS)
             vehicules_en_ligne.extend(v)
             print(f"  Page  1 : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
 
-            # Remonter en haut pour voir la pagination
+            # Récupérer les cookies de session (pour curl-cffi)
+            session_cookies = ctx.cookies()
+
+            # Détecter le nombre de pages
             page.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})")
             page.wait_for_timeout(800)
-
-            # Découvrir le nombre de pages depuis la pagination
             page_nums = set()
             try:
                 hrefs = page.eval_on_selector_all(
@@ -333,112 +374,12 @@ def scraper():
                     m = re.search(r'page=(\d+)', h or "")
                     if m:
                         n = int(m.group(1))
-                        if n >= 2:  # ignorer page=0 ou page=1
+                        if n >= 2:
                             page_nums.add(n)
             except Exception:
                 pass
             max_page = max(page_nums) if page_nums else 1
-            print(f"  Pages détectées : {sorted(page_nums)} → scraping jusqu'à page {max_page}")
-
-            # ── Pages 2 à max_page ──────────────────────────────────────────
-            pnum = 2
-            datadome_consec = 0   # compteur d'échecs consécutifs DataDome
-            stop = False
-
-            while pnum <= max_page and not stop:
-                try:
-                    clicked = False
-
-                    # Stratégie 1 : cliquer sur le lien de pagination (plus humain)
-                    try:
-                        link = page.locator(f'a[href*="page={pnum}"]').first
-                        if link.is_visible(timeout=2000):
-                            link.scroll_into_view_if_needed()
-                            page.wait_for_timeout(random.randint(400, 800))
-                            box = link.bounding_box()
-                            if box:
-                                page.mouse.move(
-                                    box["x"] + box["width"] / 2 + random.randint(-5, 5),
-                                    box["y"] + box["height"] / 2 + random.randint(-3, 3)
-                                )
-                                page.wait_for_timeout(random.randint(200, 400))
-                            link.click()
-                            page.wait_for_load_state("domcontentloaded", timeout=30000)
-                            page.wait_for_timeout(random.randint(1800, 2800))
-                            clicked = True
-                    except Exception:
-                        pass
-
-                    # Stratégie 2 : navigation directe (fallback)
-                    if not clicked:
-                        url_pag = PAGE_PAG.format(pnum)
-                        page.goto(url_pag, wait_until="domcontentloaded", timeout=30000)
-                        page.wait_for_timeout(random.randint(2000, 3000))
-
-                    try:
-                        title = page.title()
-                    except Exception:
-                        # Browser fermé par DataDome → arrêt propre
-                        print(f"  Page {pnum:2d} : navigateur fermé par DataDome — arrêt")
-                        stop = True
-                        break
-
-                    if title.lower() in ("lacentrale.fr", "pros.lacentrale.fr", "") or "datadome" in title.lower():
-                        datadome_consec += 1
-                        print(f"  Page {pnum:2d} : DataDome! (titre: '{title}') — échec {datadome_consec}/3")
-                        if datadome_consec >= 3:
-                            print("  DataDome persistant — arrêt du scraping")
-                            stop = True
-                            break
-                        # Retourner sur la page principale pour régénérer la session
-                        print(f"  Retour page principale + attente 25s...")
-                        time.sleep(25)
-                        try:
-                            page.goto(PAGE_PRO, wait_until="domcontentloaded", timeout=60000)
-                            page.wait_for_timeout(random.randint(3000, 5000))
-                            page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.5, behavior: 'smooth'})")
-                            page.wait_for_timeout(1500)
-                        except Exception:
-                            # Browser fermé pendant le retry → arrêt propre
-                            print(f"  Navigateur fermé pendant retry — arrêt")
-                            stop = True
-                            break
-                        # Réessayer la même page (ne pas incrémenter pnum)
-                        continue
-
-                    datadome_consec = 0  # succès → réinitialiser le compteur
-
-                    # Scroll humain sur la page
-                    for scroll_pct in [30, 70, 100, 50]:
-                        page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {scroll_pct/100}, behavior: 'smooth'}})")
-                        page.wait_for_timeout(random.randint(250, 500))
-
-                    v = page.evaluate(EXTRACT_JS)
-                    vehicules_en_ligne.extend(v)
-                    print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
-
-                    if len(v) == 0:
-                        print(f"  Page {pnum:2d} vide — arrêt")
-                        stop = True
-                        break
-
-                    # Scroll bas pour voir la pagination suivante
-                    page.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})")
-                    page.wait_for_timeout(random.randint(600, 1000))
-
-                    # Pause aléatoire entre les pages (comportement humain)
-                    pause = random.uniform(2.5, 4.0)
-                    time.sleep(pause)
-                    pnum += 1
-
-                except PWTimeout:
-                    print(f"  Page {pnum}: timeout — arrêt")
-                    stop = True
-                    break
-                except Exception as e:
-                    print(f"  Page {pnum}: erreur {e}")
-                    stop = True
-                    break
+            print(f"  Pages détectées : {sorted(page_nums)} → {max_page} pages au total")
 
         except PWTimeout:
             print("  Timeout chargement initial")
@@ -448,61 +389,143 @@ def scraper():
         finally:
             browser.close()
 
-    # ── Garde-fou : ne jamais écraser si 0 véhicule récupéré ─────────────────
+    # ── Garde-fou : arrêt si page 1 vide ──────────────────────────────────────
     if not vehicules_en_ligne:
-        nb_existants = len(data_initiale.get("vehicules", []))
-        print(f"\n⚠️  Aucun véhicule récupéré (DataDome probable).")
-        print(f"   Conservation des {nb_existants} véhicule(s) existants — aucun changement.")
+        nb = len(data_initiale.get("vehicules", []))
+        print(f"\n⚠️  Page 1 vide (DataDome probable) — {nb} véhicule(s) conservés, aucun changement.")
         return 0
+
+    # ── Phase 2 : curl-cffi — pages 2 à max_page ──────────────────────────────
+    if max_page >= 2 and session_cookies:
+        print(f"\n[Phase 2] curl-cffi pour pages 2 à {max_page} (cookies navigateur)…")
+
+        try:
+            import curl_cffi.requests as crequests
+            from bs4 import BeautifulSoup
+
+            cr_session = crequests.Session(impersonate="chrome124")
+
+            # Injecter les cookies du navigateur
+            for c in session_cookies:
+                domain = c.get("domain", "")
+                if "lacentrale" in domain or domain == "":
+                    cr_session.cookies.set(
+                        c["name"], c["value"],
+                        domain=domain.lstrip(".") if domain else "pros.lacentrale.fr"
+                    )
+
+            request_headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Referer": PAGE_PRO,
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "same-origin",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": "1",
+            }
+
+            curl_blocked = 0
+            for pnum in range(2, max_page + 1):
+                try:
+                    url_pag = PAGE_PAG.format(pnum)
+                    # Mettre à jour le Referer à chaque page
+                    if pnum > 2:
+                        request_headers["Referer"] = PAGE_PAG.format(pnum - 1)
+
+                    resp = cr_session.get(url_pag, headers=request_headers, timeout=30)
+
+                    if resp.status_code != 200:
+                        curl_blocked += 1
+                        print(f"  Page {pnum:2d} : HTTP {resp.status_code} — DataDome (curl)")
+                        if curl_blocked >= 3:
+                            print("  curl-cffi bloqué — arrêt")
+                            break
+                        time.sleep(random.uniform(15, 25))
+                        continue
+
+                    # Vérifier si la page est la vraie page (pas une page DataDome)
+                    html = resp.text
+                    if "datadome" in html[:2000].lower() and "searchCard" not in html:
+                        curl_blocked += 1
+                        print(f"  Page {pnum:2d} : DataDome détecté dans HTML (curl)")
+                        if curl_blocked >= 3:
+                            break
+                        time.sleep(random.uniform(15, 25))
+                        continue
+
+                    curl_blocked = 0  # succès → reset
+                    v = extraire_via_html(html)
+                    vehicules_en_ligne.extend(v)
+                    print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
+
+                    if len(v) == 0:
+                        # Page vide — peut-être fin ou rendu client uniquement
+                        print(f"  Page {pnum:2d} : 0 résultats (HTML peut-être vide, rendu JS ?)")
+                        # On continue quand même au cas où c'est une page "trou"
+                        if pnum >= 3:  # après 2 pages vides consécutives → arrêt
+                            break
+
+                    # Pause humaine
+                    time.sleep(random.uniform(3.0, 6.0))
+
+                except Exception as e:
+                    print(f"  Page {pnum:2d} : erreur curl-cffi — {e}")
+                    break
+
+        except ImportError:
+            print("  curl-cffi non installé — pages 2+ ignorées")
+        except Exception as e:
+            print(f"  [Phase 2] Erreur : {e}")
 
     # ── Dédoublonnage ──────────────────────────────────────────────────────────
     vus = {}
     for v in vehicules_en_ligne:
         if v.get("id") and v["id"] not in vus:
+            # Préserver photo_local si elle existait
+            old_v = ids_existants.get(v["id"], {})
             v["prix"] = nettoyer_prix(v.get("prix", ""))
             v["km"]   = nettoyer_km(v.get("km", ""))
+            if old_v.get("photo_local"):
+                v["photo_local"] = old_v["photo_local"]
             vus[v["id"]] = v
 
     vehicules_en_ligne = list(vus.values())
 
-    # ── Téléchargement des photos manquantes ──────────────────────────────────
-    # Les photos La Centrale ont hotlink protection → on les stocke sur GitHub
-    print("\nTéléchargement des photos…")
-    photos_dl = 0
-    try:
-        for v in vehicules_en_ligne:
-            vid = v.get("id", "")
-            if not vid:
-                continue
-            local_photo = os.path.join(PHOTOS_DIR, f"{vid}.jpg")
-
-            # 1) Déjà téléchargée localement ?
-            if os.path.exists(local_photo) and os.path.getsize(local_photo) > 5000:
+    # ── Photos interceptées ────────────────────────────────────────────────────
+    print("\nAssociation des photos…")
+    photos_associees = 0
+    for v in vehicules_en_ligne:
+        vid = v.get("id", "")
+        if not vid:
+            continue
+        local_photo = os.path.join(PHOTOS_DIR, f"{vid}.jpg")
+        if os.path.exists(local_photo) and os.path.getsize(local_photo) > 5000:
+            v["photo_local"] = f"photos/{vid}.jpg"
+            continue
+        photo_url = v.get("photo", "")
+        ref_m = re.search(r'W(\d+)_STANDARD_0', photo_url) if photo_url else None
+        if ref_m:
+            ref_id = ref_m.group(1)
+            ref_path = os.path.join(PHOTOS_DIR, f"ref_{ref_id}.jpg")
+            if ref_id in photos_intercepted and os.path.exists(ref_path):
+                os.rename(ref_path, local_photo)
                 v["photo_local"] = f"photos/{vid}.jpg"
-                continue
-
-            # 2) Interceptée par Playwright ? (renommer ref_XXXXXX.jpg → ID.jpg)
-            photo_url = v.get("photo", "")
-            ref_m = re.search(r'W(\d+)_STANDARD_0', photo_url) if photo_url else None
-            if ref_m:
-                ref_id = ref_m.group(1)
-                ref_path = os.path.join(PHOTOS_DIR, f"ref_{ref_id}.jpg")
-                if ref_id in photos_intercepted and os.path.exists(ref_path):
-                    os.rename(ref_path, local_photo)
-                    v["photo_local"] = f"photos/{vid}.jpg"
-                    photos_dl += 1
-                    continue
-
-    except Exception as e:
-        print(f"  Erreur photos interceptées : {e}")
-    print(f"  {photos_dl} photo(s) capturée(s) via navigateur")
+                photos_associees += 1
+    if photos_associees:
+        print(f"  {photos_associees} nouvelle(s) photo(s) associée(s)")
 
     # ── Diff ───────────────────────────────────────────────────────────────────
     nouveaux = [v for v in vehicules_en_ligne if v["id"] not in ids_existants]
     retires  = [v for v in data_initiale.get("vehicules", [])
                 if v.get("id") and v["id"] not in vus]
 
-    for v in nouveaux[:20]:  # max 20 logs
+    for v in nouveaux[:20]:
         print(f"  + Nouveau : {v['titre']} | {v['prix']} | {v['km']} | {v['annee']}")
     for v in retires[:10]:
         print(f"  - Retiré  : {v['titre']}")
@@ -524,8 +547,8 @@ def scraper():
     print(f" ✅ {total} véhicule(s) | +{len(nouveaux)} nouveau(x) | -{len(retires)} retiré(s) | ~{len(prix_changes)} prix modifié(s)")
     print(f"{'='*55}\n")
 
-    # ── Push GitHub si changement ───────────────────────────────────────────────
-    if nouveaux or retires or prix_changes or not ids_existants:
+    # ── Push GitHub ───────────────────────────────────────────────────────────
+    if nouveaux or retires or prix_changes or total != len(ids_existants):
         print("Synchronisation GitHub…")
         token = get_github_token()
         push_to_github(token)
