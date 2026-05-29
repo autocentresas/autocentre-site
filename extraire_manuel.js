@@ -107,6 +107,8 @@
     }
 
     // ── Détecter le nombre de pages depuis la page actuelle ───────────────────
+    // On prend le max détecté, mais on utilise au minimum 30 pour ne pas
+    // s'arrêter trop tôt si la pagination n'affiche que quelques numéros.
     function detecterMaxPage() {
         let max = 1;
         document.querySelectorAll('a[href*="page="]').forEach(a => {
@@ -116,7 +118,9 @@
                 if (n > max) max = n;
             }
         });
-        return max;
+        // Si la pagination ne montre que les premières pages, on continue
+        // quand même jusqu'à 30 (le script s'arrête seul quand une page est vide)
+        return Math.max(max, 30);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -188,8 +192,16 @@
         console.log(`  Page ${String(pnum).padStart(2,' ')} : ${vehiculesPage.length} annonces | total : ${tousTous.length}`);
 
         if (vehiculesPage.length === 0) {
-            console.log(`  Page ${pnum} vide — fin`);
-            break;
+            // Attendre 2 pages vides consécutives avant d'arrêter
+            // (une page peut être vide par erreur réseau passagère)
+            blockeesConsec++;
+            if (blockeesConsec >= 2) {
+                console.log(`  2 pages vides — fin des annonces à la page ${pnum - 1}`);
+                break;
+            }
+            await sleep(3000);
+        } else {
+            blockeesConsec = 0;
         }
     }
 
