@@ -12,7 +12,7 @@
 
 (async function extraireAutocentre() {
 
-    const GITHUB_TOKEN = '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';
+    const GITHUB_TOKEN = 'VOTRE_TOKEN_ICI';
     const GITHUB_REPO  = 'autocentresas/autocentre-site';
     const GITHUB_PATH  = 'vehicules.json';
 
@@ -132,95 +132,7 @@
     }
 
     const authHdr = { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' };
-
-    // ════════════════════════════════════════════════════════
-    // 2. TÉLÉCHARGEMENT DES PHOTOS depuis La Centrale
-    //    (votre navigateur a les accès → ça marche ici)
-    // ════════════════════════════════════════════════════════
-
-    console.log('%c📸 Téléchargement des photos…', 'color:#2563eb;font-weight:bold');
-
-    async function downloadPhotoBase64(photoUrl) {
-        if (!photoUrl) return null;
-        try {
-            // Essai 1 : fetch direct (marche si votre IP est autorisée)
-            const resp = await fetch(photoUrl, { credentials: 'omit', mode: 'cors' });
-            if (resp.ok) {
-                const blob   = await resp.blob();
-                const base64 = await new Promise(res => {
-                    const r = new FileReader();
-                    r.onloadend = () => res(r.result.split(',')[1]);
-                    r.readAsDataURL(blob);
-                });
-                return base64;
-            }
-        } catch(e) {}
-
-        // Essai 2 : via <img> + canvas (avec cookies session)
-        return new Promise(resolve => {
-            const img    = new Image();
-            const canvas = document.createElement('canvas');
-            img.crossOrigin = 'use-credentials';
-            img.onload = () => {
-                try {
-                    canvas.width  = img.naturalWidth  || 640;
-                    canvas.height = img.naturalHeight || 480;
-                    canvas.getContext('2d').drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL('image/jpeg', 0.82).split(',')[1]);
-                } catch(e) { resolve(null); }
-            };
-            img.onerror = () => resolve(null);
-            img.src = photoUrl + (photoUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
-            setTimeout(() => resolve(null), 8000); // timeout 8s
-        });
-    }
-
-    async function pushPhotoGitHub(vehiculeId, base64Data) {
-        const remotePath = `photos/${vehiculeId}.jpg`;
-        const apiUrl     = `https://api.github.com/repos/${GITHUB_REPO}/contents/${remotePath}`;
-        // Essayer de créer sans SHA (nouveau fichier)
-        const payload = { message: `📸 Photo ${vehiculeId}`, content: base64Data };
-        try {
-            const r = await fetch(apiUrl, { method: 'PUT', headers: authHdr, body: JSON.stringify(payload) });
-            if (r.ok || r.status === 201) return true;
-            if (r.status === 409 || r.status === 422) {
-                // Fichier existe déjà → récupérer SHA et mettre à jour
-                try {
-                    const existing = await (await fetch(apiUrl, { headers: authHdr })).json();
-                    const sha = existing.sha || '';
-                    const r2  = await fetch(apiUrl, {
-                        method: 'PUT', headers: authHdr,
-                        body: JSON.stringify({ ...payload, sha })
-                    });
-                    return r2.ok;
-                } catch(e) { return false; }
-            }
-            return false;
-        } catch(e) { return false; }
-    }
-
-    // Télécharger + pousser par lots de 4
-    let photosOk = 0;
-    const BATCH  = 4;
-    for (let i = 0; i < vehiculesFinaux.length; i += BATCH) {
-        const lot = vehiculesFinaux.slice(i, i + BATCH);
-        await Promise.all(lot.map(async v => {
-            if (!v.photo) return;
-            const b64 = await downloadPhotoBase64(v.photo);
-            if (b64) {
-                const ok = await pushPhotoGitHub(v.id, b64);
-                if (ok) {
-                    v.photo_local = `photos/${v.id}.jpg`;
-                    photosOk++;
-                }
-            }
-        }));
-        if (i % 20 === 0 && i > 0) {
-            console.log(`  Photos : ${photosOk} poussées (${i + BATCH}/${vehiculesFinaux.length})`);
-        }
-        await sleep(600); // pause entre les lots
-    }
-    console.log(`%c  ✓ ${photosOk}/${vehiculesFinaux.length} photos stockées sur GitHub`, 'color:green');
+    const photosOk = 0; // photos affichées via URLs La Centrale directement
 
     // ════════════════════════════════════════════════════════
     // 3. PUSH vehicules.json
