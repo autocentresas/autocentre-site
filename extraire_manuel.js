@@ -12,7 +12,7 @@
 
 (async function extraireAutocentre() {
 
-    const GITHUB_TOKEN = 'VOTRE_TOKEN_ICI'; // ← remplacer par votre token
+    const GITHUB_TOKEN = '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';
     const GITHUB_REPO  = 'autocentresas/autocentre-site';
     const GITHUB_PATH  = 'vehicules.json';
 
