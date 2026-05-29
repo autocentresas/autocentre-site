@@ -500,8 +500,17 @@ h3 { font-size: 1.2rem; }
   border-color: rgba(29,78,216,0.35);
   box-shadow: 0 24px 48px rgba(0,0,0,0.4);
 }
-.vcat-icon { color: var(--blue-light); margin-bottom: 20px; }
-.vcat-icon svg { width: 80px; height: 48px; }
+.vcat-icon {
+  width: 56px; height: 56px;
+  background: rgba(29,78,216,0.12);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  color: var(--blue-light);
+  transition: background var(--transition);
+}
+.vcat-card:hover .vcat-icon { background: rgba(29,78,216,0.22); }
+.vcat-icon svg { width: 28px; height: 28px; }
 .vcat-card h3 { font-size: 1.4rem; margin-bottom: 10px; }
 .vcat-card p { color: var(--light-gray); margin-bottom: 28px; font-size: 0.95rem; }
 .vcat-links { display: flex; gap: 12px; flex-wrap: wrap; }
