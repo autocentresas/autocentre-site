@@ -389,10 +389,34 @@ def scraper():
         finally:
             browser.close()
 
-    # ── Garde-fou : arrêt si page 1 vide ──────────────────────────────────────
+    # ── Garde-fou : arrêt si résultat insuffisant ─────────────────────────────
+    nb_existants = len(data_initiale.get("vehicules", []))
     if not vehicules_en_ligne:
-        nb = len(data_initiale.get("vehicules", []))
-        print(f"\n⚠️  Page 1 vide (DataDome probable) — {nb} véhicule(s) conservés, aucun changement.")
+        print(f"\n⚠️  Page 1 vide (DataDome probable) — {nb_existants} véhicule(s) conservés, aucun changement.")
+        return 0
+    # Si on récupère moins de 50 % du stock connu → scrape partiel
+    # On sauvegarde quand même les photos capturées, mais on ne touche pas à la liste
+    seuil = max(10, int(nb_existants * 0.5))
+    if nb_existants > 0 and len(vehicules_en_ligne) < seuil:
+        print(f"\n⚠️  Scrape incomplet : {len(vehicules_en_ligne)} véhicule(s) récupéré(s) sur {nb_existants} connus.")
+        print(f"   Seuil minimum : {seuil} — liste véhicules NON écrasée.")
+        # Injecte les nouvelles photos dans le fichier existant sans modifier la liste
+        nb_photos_ajoutees = 0
+        for v_existing in data_initiale.get("vehicules", []):
+            vid = v_existing.get("id", "")
+            if not vid or v_existing.get("photo_local"):
+                continue
+            local_photo = os.path.join(PHOTOS_DIR, f"{vid}.jpg")
+            if os.path.exists(local_photo) and os.path.getsize(local_photo) > 5000:
+                v_existing["photo_local"] = f"photos/{vid}.jpg"
+                nb_photos_ajoutees += 1
+        if nb_photos_ajoutees:
+            print(f"   {nb_photos_ajoutees} photo(s) ajoutée(s) aux véhicules existants.")
+            sauvegarder(data_initiale)
+            token = get_github_token()
+            push_to_github(token)
+        else:
+            print("   Aucune nouvelle photo — aucun changement.")
         return 0
 
     # ── Phase 2 : curl-cffi — pages 2 à max_page ──────────────────────────────
