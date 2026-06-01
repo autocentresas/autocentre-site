@@ -122,11 +122,11 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
       grid.innerHTML = liste.map((v, i) => {
         const isNew   = i < 3;
         const details = [v.annee, v.km, v.carburant].filter(Boolean).join(' · ');
-        // photo = URL La Centrale (no-referrer pour contourner le filtre CDN)
-        const imgSrc  = v.photo || v.photo_local || '';
+        // photo_local = photo hébergée sur GitHub (priorité) ; photo = URL La Centrale (fallback)
+        const imgSrc  = v.photo_local || v.photo || '';
+        const imgFb   = v.photo_local && v.photo ? escHtml(v.photo) : '';
         const imgHtml = imgSrc
-          ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(v.titre)}" loading="lazy" referrerpolicy="no-referrer"
-               onerror="this.parentElement.innerHTML='<div class=stock-img-placeholder><svg viewBox=\\'0 0 48 48\\' fill=\\'none\\'><circle cx=\\'24\\' cy=\\'24\\' r=\\'20\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'/><path d=\\'M14 30l6-10 5 7 3-4 6 7H14z\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'/></svg></div>'" />`
+          ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(v.titre)}" loading="lazy" referrerpolicy="no-referrer" onerror="stockImgErr(this,'${imgFb}')" />`
           : `<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>`;
 
         return `
@@ -158,6 +158,18 @@ function escHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* Gestion erreur photo : tente l'URL La Centrale en fallback, sinon placeholder */
+function stockImgErr(img, fallbackUrl) {
+  const placeholder = '<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>';
+  if (fallbackUrl) {
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = function() { this.outerHTML = placeholder; };
+    img.src = fallbackUrl;
+  } else {
+    img.outerHTML = placeholder;
+  }
 }
 
 /* ===== CONTACT FORM (simulation) ===== */
