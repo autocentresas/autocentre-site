@@ -1,5 +1,5 @@
 {
-  "derniere_maj": "29/05/2026 13:31",
+  "derniere_maj": "09/06/2026 18:03",
   "vehicules": [
     {
       "id": "87103442943",
@@ -343,7 +343,8 @@
       "km": "195 000 km",
       "annee": "2010",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103490006.jpg"
     },
     {
       "id": "87103482462",
