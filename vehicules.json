@@ -127,7 +127,8 @@
       "km": "194 000 km",
       "annee": "2006",
       "carburant": "Essence",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/ref_103431233.jpg"
     },
     {
       "id": "87103444839",
@@ -187,7 +188,8 @@
       "km": "195 000 km",
       "annee": "2007",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/ref_103455989.jpg"
     },
     {
       "id": "87103469805",
@@ -211,7 +213,8 @@
       "km": "112 000 km",
       "annee": "2009",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/ref_103460675.jpg"
     },
     {
       "id": "87103440401",
@@ -620,7 +623,8 @@
       "km": "139 000 km",
       "annee": "2023",
       "carburant": "Diesel",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/ref_103304589.jpg"
     },
     {
       "id": "87103418002",
