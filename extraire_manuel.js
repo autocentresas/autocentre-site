@@ -5,7 +5,7 @@
  * ║  1. Ouvrir Chrome sur https://pros.lacentrale.fr/C054723 ║
  * ║  2. Appuyer sur F12 → onglet "Console"                  ║
  * ║  3. Coller tout ce script et appuyer sur Entrée          ║
- * ║  4. Attendre la fin (~5 minutes avec photos)             ║
+ * ║  4. Attendre la fin (~10 minutes avec photos)            ║
  * ║  5. Le site est mis à jour avec photos + prix            ║
  * ╚══════════════════════════════════════════════════════════╝
  */
@@ -19,6 +19,7 @@
     console.log('%c🚗 Extraction Autocentre démarrée…', 'color:#2563eb;font-size:14px;font-weight:bold');
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const authHdr = { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' };
 
     // ════════════════════════════════════════════════════════
     // 1. EXTRACTION DES VÉHICULES (toutes les pages)
@@ -131,11 +132,92 @@
         return;
     }
 
-    const authHdr = { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' };
-    const photosOk = 0; // photos affichées via URLs La Centrale directement
+    // ════════════════════════════════════════════════════════
+    // 2. RÉCUPÉRATION DES PHOTOS EXISTANTES (préservation)
+    // ════════════════════════════════════════════════════════
+
+    const photoLocalesExistantes = {};
+    try {
+        const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
+        const existing = await (await fetch(apiUrl, { headers: authHdr })).json();
+        if (existing.content) {
+            const existingData = JSON.parse(atob(existing.content.replace(/\n/g, '')));
+            for (const v of existingData.vehicules || []) {
+                if (v.photo_local) photoLocalesExistantes[v.id] = v.photo_local;
+            }
+        }
+        console.log(`  📂 ${Object.keys(photoLocalesExistantes).length} photos_local existantes préservées`);
+    } catch(e) { console.warn('  Impossible de charger vehicules.json existant:', e.message); }
+
+    // Injecte les photo_local dans les véhicules extraits
+    for (const v of vehiculesFinaux) {
+        if (photoLocalesExistantes[v.id]) v.photo_local = photoLocalesExistantes[v.id];
+    }
 
     // ════════════════════════════════════════════════════════
-    // 3. PUSH vehicules.json
+    // 3. TÉLÉCHARGEMENT DES PHOTOS (avec cookies La Centrale)
+    // ════════════════════════════════════════════════════════
+
+    const vehiculesSansPhoto = vehiculesFinaux.filter(v => !v.photo_local && v.photo);
+    console.log(`%c📸 Tentative téléchargement : ${vehiculesSansPhoto.length} photos manquantes…`, 'color:#2563eb');
+
+    let photosTelechargees = 0;
+    let photosEchec = 0;
+    const photosAUploader = [];
+
+    for (let i = 0; i < vehiculesSansPhoto.length; i++) {
+        const v = vehiculesSansPhoto[i];
+        try {
+            const resp = await fetch(v.photo, { credentials: 'include', mode: 'cors' });
+            if (!resp.ok) { photosEchec++; continue; }
+            const blob = await resp.blob();
+            if (blob.size < 3000) { photosEchec++; continue; }
+
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload  = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
+            photosAUploader.push({ id: v.id, base64 });
+            v.photo_local = `photos/${v.id}.jpg`;
+            photosTelechargees++;
+
+            if (photosTelechargees % 10 === 0) {
+                console.log(`  📸 ${photosTelechargees} / ${vehiculesSansPhoto.length} téléchargées…`);
+            }
+        } catch(e) {
+            photosEchec++;
+        }
+        await sleep(150);
+    }
+
+    console.log(`  ✅ ${photosTelechargees} téléchargées | ❌ ${photosEchec} échecs (CORS/403)`);
+
+    // Upload photos vers GitHub
+    if (photosAUploader.length > 0) {
+        console.log(`📤 Upload ${photosAUploader.length} photos → GitHub…`);
+        let uploaded = 0;
+        for (const p of photosAUploader) {
+            try {
+                const photoApiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/photos/${p.id}.jpg`;
+                let sha = '';
+                try { sha = (await (await fetch(photoApiUrl, { headers: authHdr })).json()).sha || ''; } catch(e) {}
+                const body = { message: `📸 Photo ${p.id}`, content: p.base64 };
+                if (sha) body.sha = sha;
+                const r = await fetch(photoApiUrl, { method: 'PUT', headers: authHdr, body: JSON.stringify(body) });
+                if (r.ok) uploaded++;
+            } catch(e) {}
+            await sleep(200);
+        }
+        console.log(`  ✅ ${uploaded} photos uploadées sur GitHub`);
+    }
+
+    const totalPhotos = Object.keys(photoLocalesExistantes).length + photosTelechargees;
+
+    // ════════════════════════════════════════════════════════
+    // 4. PUSH vehicules.json
     // ════════════════════════════════════════════════════════
 
     const now     = new Date();
@@ -158,11 +240,11 @@
         const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
         const putR = await fetch(apiUrl, {
             method: 'PUT', headers: authHdr,
-            body: JSON.stringify({ message: `🚗 ${vehiculesFinaux.length} véhicules + ${photosOk} photos — ${dateStr}`, content: encoded, sha })
+            body: JSON.stringify({ message: `🚗 ${vehiculesFinaux.length} véhicules + ${totalPhotos} photos — ${dateStr}`, content: encoded, sha })
         });
         if (putR.ok) {
             const sha2 = (await putR.json())?.commit?.sha?.slice(0, 10) || '?';
-            console.log(`%c✅ Site mis à jour ! ${vehiculesFinaux.length} véhicules, ${photosOk} photos — commit ${sha2}`, 'color:green;font-weight:bold;font-size:13px');
+            console.log(`%c✅ Site mis à jour ! ${vehiculesFinaux.length} véhicules, ${totalPhotos} photos — commit ${sha2}`, 'color:green;font-weight:bold;font-size:13px');
             console.log('%c🌐 https://autocentresas.github.io/autocentre-site/', 'color:#2563eb');
         } else {
             console.error('❌ Erreur push JSON :', putR.status);
