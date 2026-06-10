@@ -381,6 +381,31 @@ def scraper():
             max_page = max(page_nums) if page_nums else 1
             print(f"  Pages détectées : {sorted(page_nums)} → {max_page} pages au total")
 
+            # ── Phase 2b : Playwright pages 2+ (même session navigateur) ─────────
+            if max_page >= 2:
+                print(f"\n[Phase 2b] Playwright pages 2 à {max_page} (même navigateur)…")
+                vides_consec = 0
+                for pnum in range(2, max_page + 1):
+                    try:
+                        page.goto(PAGE_PAG.format(pnum), wait_until="domcontentloaded", timeout=35000)
+                        page.wait_for_timeout(random.randint(1200, 2500))
+                        page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.6, behavior: 'smooth'})")
+                        page.wait_for_timeout(random.randint(600, 1200))
+                        v = page.evaluate(EXTRACT_JS)
+                        vehicules_en_ligne.extend(v)
+                        print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
+                        if len(v) == 0:
+                            vides_consec += 1
+                            if vides_consec >= 2:
+                                print(f"  Fin des annonces à la page {pnum - 1}")
+                                break
+                        else:
+                            vides_consec = 0
+                        time.sleep(random.uniform(2.5, 5.0))
+                    except Exception as e:
+                        print(f"  Page {pnum:2d} : erreur Playwright — {e}")
+                        break
+
         except PWTimeout:
             print("  Timeout chargement initial")
         except Exception as e:
