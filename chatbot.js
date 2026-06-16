@@ -1,64 +1,76 @@
 (function () {
   const FAQ = [
     {
-      keys: ["horaire", "heure", "ouvert", "ouverture", "fermé", "fermeture", "quand"],
-      answer: "🕐 Nous sommes ouverts du lundi au samedi de 10h à 19h, sans rendez-vous."
+      keys: ["horaire", "heure", "ouvert", "ouverture", "ferme", "fermeture", "quand", "matin", "soir", "samedi", "dimanche", "lundi", "weekend", "week-end", "jour"],
+      answer: "🕐 Nous sommes ouverts du <strong>lundi au samedi de 10h à 19h</strong>, sans rendez-vous. Nous sommes fermés le dimanche."
     },
     {
-      keys: ["adresse", "où", "situé", "trouver", "localisation", "venir", "plan", "brie"],
-      answer: "📍 Nous sommes situés à Brie-Comte-Robert (77170), en Seine-et-Marne. Retrouvez-nous facilement via Google Maps en cherchant « Autocentre Brie-Comte-Robert »."
+      keys: ["adresse", "ou etes", "ou est", "situe", "trouver", "localisation", "venir", "plan", "brie", "brie-comte", "77", "seine", "marne", "comment venir", "comment acceder", "itineraire", "gps", "maps", "google maps"],
+      answer: "📍 Nous sommes situés à <strong>Brie-Comte-Robert (77170)</strong>, en Seine-et-Marne. Cherchez « Autocentre Brie-Comte-Robert » sur Google Maps pour l'itinéraire."
     },
     {
-      keys: ["téléphone", "appeler", "numéro", "tel", "phone", "joindre"],
+      keys: ["telephone", "appeler", "numero", "tel", "phone", "joindre", "appel", "vous appeler", "vous joindre", "vous contacter par telephone"],
       answer: "📞 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong>, du lundi au samedi de 10h à 19h."
     },
     {
-      keys: ["mail", "email", "courriel", "gmail", "écrire"],
+      keys: ["mail", "email", "courriel", "gmail", "ecrire", "envoyer un mail", "envoyer un message", "par email", "par mail"],
       answer: "✉️ Notre adresse e-mail : <strong>autocentresas@gmail.com</strong>. Nous répondons rapidement !"
     },
     {
-      keys: ["contact", "contacter", "message", "renseignement"],
-      answer: "📬 Pour nous contacter : appelez le <strong>07 49 44 07 63</strong> ou écrivez à <strong>autocentresas@gmail.com</strong>. Vous pouvez aussi remplir le formulaire de contact en bas de la page."
+      keys: ["contact", "contacter", "prendre contact", "vous contacter", "vous joindre", "renseignement", "information", "renseigner", "question", "demande"],
+      answer: "📬 Pour nous contacter : appelez le <strong>07 49 44 07 63</strong> ou écrivez à <strong>autocentresas@gmail.com</strong>. Vous pouvez aussi utiliser le formulaire de contact en bas de la page."
     },
     {
-      keys: ["véhicule", "voiture", "stock", "dispo", "disponible", "acheter", "vente", "vendre"],
-      answer: "🚗 Nous avons plus de 170 véhicules en stock, toutes marques confondues. Consultez notre catalogue directement sur cette page, ou venez sans rendez-vous !"
+      keys: ["vehicule", "voiture", "stock", "dispo", "disponible", "acheter", "vente", "vendre", "catalogue", "annonce", "modele", "marque", "occasion", "vo", "voir les voitures", "quelles voitures", "avez vous des voitures", "combien de voitures"],
+      answer: "🚗 Nous avons plus de <strong>170 véhicules en stock</strong>, toutes marques confondues. Consultez notre catalogue directement sur cette page ou venez sans rendez-vous !"
     },
     {
-      keys: ["prix", "tarif", "combien", "coût", "budget"],
-      answer: "💰 Les prix sont affichés sur chaque véhicule dans notre catalogue. Pour une offre personnalisée ou un financement, contactez-nous au <strong>07 49 44 07 63</strong>."
+      keys: ["prix", "tarif", "combien", "cout", "budget", "combien ca coute", "quel prix", "pas cher", "moins cher", "fourchette", "gamme de prix"],
+      answer: "💰 Les prix sont affichés sur chaque véhicule dans notre catalogue. Pour une offre personnalisée, contactez-nous au <strong>07 49 44 07 63</strong>."
     },
     {
-      keys: ["reprise", "reprendre", "échange", "racheter"],
-      answer: "🔄 Oui, nous reprenons votre véhicule à condition qu'il soit à moins de 180 000 km et moins de 10 ans ! Contactez-nous avec les infos de votre voiture."
+      keys: ["reprise", "reprendre", "echange", "racheter", "vous reprenez", "vous rachetez", "reprendre mon vehicule", "reprendre ma voiture", "echange vehicule", "racheter mon vehicule", "vendre ma voiture"],
+      answer: "🔄 Oui, nous reprenons votre véhicule à condition qu'il soit à <strong>moins de 180 000 km et moins de 10 ans</strong> ! Contactez-nous avec les infos de votre voiture (marque, modèle, km, année)."
     },
     {
-      keys: ["garantie", "garanti", "panne", "sav"],
-      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie possible jusqu'à 24 mois. Renseignez-vous auprès de nos conseillers pour les détails selon le véhicule choisi."
+      keys: ["garantie", "garanti", "panne", "sav", "vous garantissez", "vehicule garanti", "garantie incluse", "combien de temps garantie", "duree garantie"],
+      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie possible <strong>jusqu'à 24 mois</strong>. Renseignez-vous auprès de nos conseillers pour les détails."
     },
     {
-      keys: ["financement", "crédit", "mensualité", "prêt", "leasing", "financements"],
-      answer: "💳 Nous ne proposons pas de financement"
+      keys: ["financement", "credit", "mensualite", "pret", "leasing", "financements", "vous faites des financements", "proposez vous un financement", "financer", "payer en plusieurs fois", "facilite de paiement", "paiement echelonne"],
+      answer: "💳 Nous ne proposons pas de financement. Le paiement s'effectue en une seule fois. Pour toute question, appelez-nous au <strong>07 49 44 07 63</strong>."
     },
     {
-      keys: ["livraison", "livrer", "domicile", "transport"],
-      answer: "🚚 Nous pouvons vous renseigner sur les options de livraison. Contactez-nous directement pour en discuter."
+      keys: ["livraison", "livrer", "domicile", "transport", "vous livrez", "livraison possible", "livrer le vehicule", "amener la voiture"],
+      answer: "🚚 Contactez-nous directement au <strong>07 49 44 07 63</strong> pour discuter des options de livraison."
     },
     {
-      keys: ["essai", "essayer", "tester", "test drive"],
-      answer: "🔑 Venez tester nos véhicules directement chez nous, sans rendez-vous, du lundi au samedi de 10h à 19h à Brie-Comte-Robert."
+      keys: ["essai", "essayer", "tester", "test drive", "faire un essai", "essai routier", "essayer une voiture", "tester un vehicule"],
+      answer: "🔑 Venez tester nos véhicules directement chez nous, <strong>sans rendez-vous</strong>, du lundi au samedi de 10h à 19h à Brie-Comte-Robert."
     },
     {
-      keys: ["bonjour", "salut", "hello", "bonsoir", "coucou"],
-      answer: "👋 Bonjour ! Je suis Arthur, l'assistant Autocentre. Comment puis-je vous aider ?"
+      keys: ["rendez-vous", "rdv", "rendez vous", "appointment", "prendre rdv", "sans rdv", "faut il un rdv", "besoin rdv"],
+      answer: "📅 Pas besoin de rendez-vous ! Venez directement chez nous du <strong>lundi au samedi de 10h à 19h</strong>."
     },
     {
-      keys: ["merci", "super", "parfait", "nickel", "ok", "top"],
-      answer: "😊 Avec plaisir ! N'hésitez pas si vous avez d'autres questions."
+      keys: ["bonjour", "salut", "hello", "bonsoir", "coucou", "bonne journee", "bonne soiree", "hey"],
+      answer: "👋 Bonjour ! Je suis <strong>Arthur</strong>, l'assistant Autocentre. Comment puis-je vous aider ?"
     },
     {
-      keys: ["arthur", "qui es-tu", "qui êtes-vous", "bot", "assistant"],
-      answer: "🤖 Je suis Arthur, l'assistant virtuel d'Autocentre. Je peux vous renseigner sur nos véhicules, nos horaires, nos services et bien plus encore !"
+      keys: ["merci", "super", "parfait", "nickel", "ok merci", "top merci", "c est tout", "bonne journee"],
+      answer: "😊 Avec plaisir ! N'hésitez pas si vous avez d'autres questions. Bonne journée !"
+    },
+    {
+      keys: ["arthur", "qui es tu", "qui etes vous", "bot", "assistant", "robot", "intelligence artificielle", "ia"],
+      answer: "🤖 Je suis <strong>Arthur</strong>, l'assistant virtuel d'Autocentre ! Je peux vous renseigner sur nos véhicules, horaires, services et plus encore. Pour une question complexe, contactez-nous au <strong>07 49 44 07 63</strong>."
+    },
+    {
+      keys: ["carte grise", "immatriculation", "homologation", "controle technique"],
+      answer: "📄 Nous vous accompagnons dans les démarches administratives. Contactez-nous au <strong>07 49 44 07 63</strong> pour plus d'informations."
+    },
+    {
+      keys: ["kilometrage", "km", "kilom", "kilométrage", "combien de km"],
+      answer: "🔢 Le kilométrage de chaque véhicule est indiqué sur les fiches dans notre catalogue. Venez vérifier sur place ou appelez le <strong>07 49 44 07 63</strong>."
     }
   ];
 
@@ -71,7 +83,7 @@
     garantie:  "Proposez-vous une garantie ?"
   };
 
-  const DEFAULT = "Je n'ai pas bien compris votre question 😅 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong> ou écrire à <strong>autocentresas@gmail.com</strong> — Arthur vous redirige vers les humains !";
+  const DEFAULT = "Je n'ai pas bien compris votre question 😅 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong> ou écrire à <strong>autocentresas@gmail.com</strong> et on vous répondra avec plaisir !";
 
   function normalize(str) {
     return str.toLowerCase()
