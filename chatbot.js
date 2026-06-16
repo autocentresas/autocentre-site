@@ -37,7 +37,7 @@
       answer: "🛡️ Tous nos véhicules sont vendus avec une garantie possible jusqu'à 24 mois. Renseignez-vous auprès de nos conseillers pour les détails selon le véhicule choisi."
     },
     {
-      keys: ["financement", "crédit", "mensualité", "prêt", "leasing"],
+      keys: ["financement", "crédit", "mensualité", "prêt", "leasing", "financements"],
       answer: "💳 Nous ne proposons pas de financement"
     },
     {
