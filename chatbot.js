@@ -1,80 +1,76 @@
 (function () {
   const FAQ = [
     {
-      keys: ["horaire", "heure", "ouvert", "ouverture", "ferm", "fermeture", "quand", "matin", "soir", "samedi", "dimanche", "lundi", "semaine", "week", "weekend", "jour", "ouvre", "ferme", "plage horaire", "a quelle heure", "vous ouvrez", "vous fermez", "c est ouvert", "c est ferm"],
-      answer: "🕐 Nous sommes ouverts du <strong>lundi au samedi de 10h à 19h</strong>, sans rendez-vous. Fermés le dimanche."
+      keys: ["horaire", "heure", "ouvert", "ouverture", "ferme", "fermeture", "quand", "matin", "soir", "samedi", "dimanche", "lundi", "weekend", "week-end", "jour"],
+      answer: "🕐 Nous sommes ouverts du <strong>lundi au samedi de 10h à 19h</strong>, sans rendez-vous. Nous sommes fermés le dimanche."
     },
     {
-      keys: ["adresse", "ou etes", "ou vous", "situe", "trouver", "localisation", "venir", "plan", "brie", "77", "seine", "marne", "comment venir", "ou se trouve", "ou est", "chemin", "itineraire", "gps", "maps", "trajet"],
-      answer: "📍 Nous sommes situés au <strong>2 rue Léonard de Vinci, 77170 Brie-Comte-Robert</strong> (Seine-et-Marne). Cherchez « Autocentre Brie-Comte-Robert » sur Google Maps !"
+      keys: ["adresse", "ou etes", "ou est", "situe", "trouver", "localisation", "venir", "plan", "brie", "brie-comte", "77", "seine", "marne", "comment venir", "comment acceder", "itineraire", "gps", "maps", "google maps"],
+      answer: "📍 Nous sommes situés à <strong>Brie-Comte-Robert (77170)</strong>, en Seine-et-Marne. Cherchez « Autocentre Brie-Comte-Robert » sur Google Maps pour l'itinéraire."
     },
     {
-      keys: ["telephone", "appeler", "numero", "tel", "phone", "joindre", "rappeler", "appel", "sonner", "composer", "je peux appeler", "on peut appeler", "quel est votre numero"],
+      keys: ["telephone", "appeler", "numero", "tel", "phone", "joindre", "appel", "vous appeler", "vous joindre", "vous contacter par telephone"],
       answer: "📞 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong>, du lundi au samedi de 10h à 19h."
     },
     {
-      keys: ["mail", "email", "courriel", "gmail", "ecrire", "envoyer", "message ecrit", "adresse mail", "adresse email", "par mail", "par email", "vous ecrire"],
+      keys: ["mail", "email", "courriel", "gmail", "ecrire", "envoyer un mail", "envoyer un message", "par email", "par mail"],
       answer: "✉️ Notre adresse e-mail : <strong>autocentresas@gmail.com</strong>. Nous répondons rapidement !"
     },
     {
-      keys: ["contacter", "contact", "renseignement", "informations", "info", "comment vous joindre", "prendre contact", "vous parler", "parler a quelqu", "joindre", "echanger"],
-      answer: "📬 Pour nous contacter : appelez le <strong>07 49 44 07 63</strong> ou écrivez à <strong>autocentresas@gmail.com</strong>. Vous pouvez aussi remplir le formulaire de contact en bas de la page."
+      keys: ["contact", "contacter", "prendre contact", "vous contacter", "vous joindre", "renseignement", "information", "renseigner", "question", "demande"],
+      answer: "📬 Pour nous contacter : appelez le <strong>07 49 44 07 63</strong> ou écrivez à <strong>autocentresas@gmail.com</strong>. Vous pouvez aussi utiliser le formulaire de contact en bas de la page."
     },
     {
-      keys: ["vehicule", "voiture", "stock", "dispo", "disponible", "acheter", "vente", "vendre", "catalogue", "annonce", "occasion", "modele", "marque", "berline", "suv", "citadine", "coupé", "coupe", "break", "monospace", "4x4", "combien de voiture", "ce que vous avez", "ce que vous vendez", "qu est ce que vous vendez", "vous avez quoi"],
-      answer: "🚗 Nous avons <strong>plus de 170 véhicules en stock</strong>, toutes marques confondues (Renault, Peugeot, Citroën, BMW, Mercedes, Audi...). Consultez notre catalogue sur cette page ou venez directement !"
+      keys: ["vehicule", "voiture", "stock", "dispo", "disponible", "acheter", "vente", "vendre", "catalogue", "annonce", "modele", "marque", "occasion", "vo", "voir les voitures", "quelles voitures", "avez vous des voitures", "combien de voitures"],
+      answer: "🚗 Nous avons plus de <strong>170 véhicules en stock</strong>, toutes marques confondues. Consultez notre catalogue directement sur cette page ou venez sans rendez-vous !"
     },
     {
-      keys: ["prix", "tarif", "combien", "cout", "budget", "ca coute", "ca vaut", "valeur", "fourchette", "cher", "pas cher", "abordable", "c est combien", "quel prix", "a partir de"],
-      answer: "💰 Les prix sont affichés sur chaque véhicule dans notre catalogue. Pour une offre personnalisée, appelez-nous au <strong>07 49 44 07 63</strong>."
+      keys: ["prix", "tarif", "combien", "cout", "budget", "combien ca coute", "quel prix", "pas cher", "moins cher", "fourchette", "gamme de prix"],
+      answer: "💰 Les prix sont affichés sur chaque véhicule dans notre catalogue. Pour une offre personnalisée, contactez-nous au <strong>07 49 44 07 63</strong>."
     },
     {
-      keys: ["reprise", "reprendre", "echange", "racheter", "rachat", "revendre", "vendre ma voiture", "vous reprenez", "vous rachetez", "mon ancienne voiture", "mon vehicule actuel", "part exchange", "estimation", "estimer"],
-      answer: "🔄 Oui, nous reprenons votre véhicule ! Contactez-nous avec la marque, le modèle, le kilométrage et l'année — nous vous ferons une offre rapidement."
+      keys: ["reprise", "reprendre", "echange", "racheter", "vous reprenez", "vous rachetez", "reprendre mon vehicule", "reprendre ma voiture", "echange vehicule", "racheter mon vehicule", "vendre ma voiture"],
+      answer: "🔄 Oui, nous reprenons votre véhicule à condition qu'il soit à <strong>moins de 180 000 km et moins de 10 ans</strong> ! Contactez-nous avec les infos de votre voiture (marque, modèle, km, année)."
     },
     {
-      keys: ["garantie", "garanti", "panne", "sav", "apres vente", "service apres", "probleme apres", "tombe en panne", "defaut", "reclamation", "avec garantie", "combien de temps garantie", "duree garantie"],
-      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie. Contactez-nous au <strong>07 49 44 07 63</strong> pour connaître les détails selon le véhicule choisi."
+      keys: ["garantie", "garanti", "panne", "sav", "vous garantissez", "vehicule garanti", "garantie incluse", "combien de temps garantie", "duree garantie"],
+      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie possible <strong>jusqu'à 24 mois</strong>. Renseignez-vous auprès de nos conseillers pour les détails."
     },
     {
-      keys: ["financement", "credit", "mensualite", "pret", "leasing", "loa", "lld", "payer en plusieurs", "echelonner", "apport", "taux", "paiement", "vous faites des credit", "vous faites du financement", "possibilite financement", "aide financement"],
-      answer: "💳 Oui, nous proposons des <strong>solutions de financement</strong> adaptées à votre budget (crédit, LOA, LLD). Appelez-nous au <strong>07 49 44 07 63</strong> pour étudier votre dossier."
+      keys: ["financement", "credit", "mensualite", "pret", "leasing", "financements", "vous faites des financements", "proposez vous un financement", "financer", "payer en plusieurs fois", "facilite de paiement", "paiement echelonne"],
+      answer: "💳 Nous ne proposons pas de financement. Le paiement s'effectue en une seule fois. Pour toute question, appelez-nous au <strong>07 49 44 07 63</strong>."
     },
     {
-      keys: ["livraison", "livrer", "domicile", "transport", "vous livrez", "livraison a domicile", "livrez vous", "faire livrer", "recevoir la voiture", "amener la voiture"],
-      answer: "🚚 Oui, nous proposons la livraison à domicile. Contactez-nous au <strong>07 49 44 07 63</strong> pour en discuter et connaître les conditions."
+      keys: ["livraison", "livrer", "domicile", "transport", "vous livrez", "livraison possible", "livrer le vehicule", "amener la voiture"],
+      answer: "🚚 Contactez-nous directement au <strong>07 49 44 07 63</strong> pour discuter des options de livraison."
     },
     {
-      keys: ["essai", "essayer", "tester", "test drive", "faire un essai", "faire un tour", "conduire avant", "je peux tester", "on peut essayer", "essai gratuit"],
-      answer: "🔑 Bien sûr ! Venez tester nos véhicules directement chez nous, <strong>sans rendez-vous</strong>, du lundi au samedi de 10h à 19h."
+      keys: ["essai", "essayer", "tester", "test drive", "faire un essai", "essai routier", "essayer une voiture", "tester un vehicule"],
+      answer: "🔑 Venez tester nos véhicules directement chez nous, <strong>sans rendez-vous</strong>, du lundi au samedi de 10h à 19h à Brie-Comte-Robert."
     },
     {
-      keys: ["carte grise", "immatriculation", "papier", "demarche", "administratif", "vous vous occupez", "vous faites la carte"],
-      answer: "📄 Oui, nous nous occupons de la carte grise à votre place ! Ce service est proposé moyennant des frais administratifs. Vous repartez sans vous soucier de la paperasse."
+      keys: ["rendez-vous", "rdv", "rendez vous", "appointment", "prendre rdv", "sans rdv", "faut il un rdv", "besoin rdv"],
+      answer: "📅 Pas besoin de rendez-vous ! Venez directement chez nous du <strong>lundi au samedi de 10h à 19h</strong>."
     },
     {
-      keys: ["rendez vous", "rdv", "prendre rendez", "reservation", "reserver", "faut il un rdv", "besoin rdv", "sans rendez"],
-      answer: "✅ Aucun rendez-vous nécessaire ! Venez directement du <strong>lundi au samedi de 10h à 19h</strong> — tous nos véhicules sont disponibles immédiatement."
+      keys: ["bonjour", "salut", "hello", "bonsoir", "coucou", "bonne journee", "bonne soiree", "hey"],
+      answer: "👋 Bonjour ! Je suis <strong>Arthur</strong>, l'assistant Autocentre. Comment puis-je vous aider ?"
     },
     {
-      keys: ["kilometrage", "kilometre", "km", "kilom", "combien de km", "faible km", "peu de km"],
-      answer: "📊 Le kilométrage de chaque véhicule est indiqué dans notre catalogue. N'hésitez pas à nous appeler au <strong>07 49 44 07 63</strong> pour plus de détails sur un véhicule précis."
+      keys: ["merci", "super", "parfait", "nickel", "ok merci", "top merci", "c est tout", "bonne journee"],
+      answer: "😊 Avec plaisir ! N'hésitez pas si vous avez d'autres questions. Bonne journée !"
     },
     {
-      keys: ["utilitaire", "fourgon", "camionnette", "fourgonnette", "van", "vito", "trafic", "transporter", "master", "transit", "professionnel", "pro"],
-      answer: "🚐 Oui, nous avons une sélection d'<strong>utilitaires</strong> (fourgons, camionnettes, vans) adaptés aux professionnels. Venez voir notre stock ou consultez notre catalogue !"
+      keys: ["arthur", "qui es tu", "qui etes vous", "bot", "assistant", "robot", "intelligence artificielle", "ia"],
+      answer: "🤖 Je suis <strong>Arthur</strong>, l'assistant virtuel d'Autocentre ! Je peux vous renseigner sur nos véhicules, horaires, services et plus encore. Pour une question complexe, contactez-nous au <strong>07 49 44 07 63</strong>."
     },
     {
-      keys: ["bonjour", "salut", "hello", "bonsoir", "coucou", "hi", "bonne journee", "bonne soiree"],
-      answer: "👋 Bonjour ! Bienvenue chez Autocentre. Je suis Arthur, comment puis-je vous aider ?"
+      keys: ["carte grise", "immatriculation", "homologation", "controle technique"],
+      answer: "📄 Nous vous accompagnons dans les démarches administratives. Contactez-nous au <strong>07 49 44 07 63</strong> pour plus d'informations."
     },
     {
-      keys: ["merci", "super", "parfait", "nickel", "genial", "excellent", "impeccable", "top", "cool", "tres bien", "bonne journee"],
-      answer: "😊 Avec plaisir ! N'hésitez pas si vous avez d'autres questions. À bientôt chez Autocentre !"
-    },
-    {
-      keys: ["arthur", "qui es tu", "qui etes vous", "c est quoi", "c est qui", "vous etes qui", "tu es qui", "bot", "robot", "assistant", "ia"],
-      answer: "🤖 Je suis Arthur, l'assistant virtuel d'Autocentre ! Je peux répondre à vos questions sur nos horaires, nos véhicules, nos services et plus encore. Pour une réponse humaine, appelez le <strong>07 49 44 07 63</strong>."
+      keys: ["kilometrage", "km", "kilom", "kilométrage", "combien de km"],
+      answer: "🔢 Le kilométrage de chaque véhicule est indiqué sur les fiches dans notre catalogue. Venez vérifier sur place ou appelez le <strong>07 49 44 07 63</strong>."
     }
   ];
 
@@ -87,33 +83,24 @@
     garantie:  "Proposez-vous une garantie ?"
   };
 
-  const DEFAULT = "Je n'ai pas bien compris votre question 😅 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong> ou écrire à <strong>autocentresas@gmail.com</strong> — nous serons ravis de vous aider !";
+  const DEFAULT = "Je n'ai pas bien compris votre question 😅 Vous pouvez nous appeler au <strong>07 49 44 07 63</strong> ou écrire à <strong>autocentresas@gmail.com</strong> et on vous répondra avec plaisir !";
 
   function normalize(str) {
     return str.toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ").trim();
+      .replace(/[^a-z0-9\s]/g, " ");
   }
 
   function getAnswer(question) {
     const q = normalize(question);
-    let best = null;
-    let bestScore = 0;
     for (const entry of FAQ) {
-      let score = 0;
-      for (const k of entry.keys) {
-        if (q.includes(normalize(k))) score++;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        best = entry;
+      if (entry.keys.some(k => q.includes(normalize(k)))) {
+        return entry.answer;
       }
     }
-    return bestScore > 0 ? best.answer : DEFAULT;
+    return DEFAULT;
   }
 
-  // DOM
   const bubble    = document.getElementById("chat-bubble");
   const win       = document.getElementById("chat-window");
   const messages  = document.getElementById("chat-messages");
@@ -143,22 +130,16 @@
     messages.scrollTop = messages.scrollHeight;
   }
 
-  function addTyping() {
-    const div = document.createElement("div");
-    div.className = "chat-msg bot";
-    div.id = "chat-typing";
-    div.textContent = "…";
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-    return div;
-  }
-
   function send(text) {
     text = text.trim();
     if (!text) return;
     addMessage(escHtml(text), "user");
     input.value = "";
-    const typing = addTyping();
+    const typing = document.createElement("div");
+    typing.className = "chat-msg bot";
+    typing.textContent = "…";
+    messages.appendChild(typing);
+    messages.scrollTop = messages.scrollHeight;
     setTimeout(() => {
       typing.remove();
       addMessage(getAnswer(text), "bot");
@@ -176,8 +157,7 @@
 
   document.querySelectorAll(".chat-suggest").forEach(btn => {
     btn.addEventListener("click", () => {
-      const q = SUGGESTION_QUESTIONS[btn.dataset.q] || btn.textContent;
-      send(q);
+      send(SUGGESTION_QUESTIONS[btn.dataset.q] || btn.textContent);
     });
   });
 })();
