@@ -253,14 +253,16 @@
 
         <div class="vcat-card">
           <div class="vcat-icon">
-            <!-- Logo Mercedes : étoile à 3 branches dans un cercle -->
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="4"/>
-              <circle cx="50" cy="50" r="38" stroke="currentColor" stroke-width="1.5"/>
-              <line x1="50" y1="12" x2="50" y2="50" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-              <line x1="50" y1="50" x2="17" y2="72" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-              <line x1="50" y1="50" x2="83" y2="72" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-              <circle cx="50" cy="50" r="4" fill="currentColor"/>
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="47" fill="none" stroke="currentColor" stroke-width="3.5"/>
+              <!-- Étoile 3 branches -->
+              <path d="M50 8 L54 47 L50 50 L46 47 Z" fill="currentColor"/>
+              <path d="M50 50 L85 70 L82 74 L50 54 Z" fill="currentColor"/>
+              <path d="M50 50 L15 70 L18 74 L50 54 Z" fill="currentColor"/>
+              <!-- Centre -->
+              <circle cx="50" cy="50" r="5" fill="currentColor"/>
+              <!-- Cercle intérieur fin -->
+              <circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" stroke-width="1"/>
             </svg>
           </div>
           <h3>Voitures d'occasion</h3>
@@ -272,12 +274,14 @@
         </div>
 
         <div class="vcat-card">
-          <div class="vcat-icon">
-            <!-- Logo Renault : losange -->
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="50,5 95,50 50,95 5,50" stroke="currentColor" stroke-width="4" fill="none"/>
-              <polygon points="50,18 82,50 50,82 18,50" stroke="currentColor" stroke-width="3" fill="none"/>
-              <polygon points="50,31 69,50 50,69 31,50" fill="currentColor"/>
+            <div class="vcat-icon">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <!-- Losange extérieur -->
+              <path d="M50 4 L96 50 L50 96 L4 50 Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+              <!-- Losange intermédiaire -->
+              <path d="M50 16 L84 50 L50 84 L16 50 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+              <!-- Losange intérieur plein -->
+              <path d="M50 28 L72 50 L50 72 L28 50 Z" fill="currentColor"/>
             </svg>
           </div>
           <h3>Utilitaires</h3>
