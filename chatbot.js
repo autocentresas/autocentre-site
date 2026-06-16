@@ -30,15 +30,15 @@
     },
     {
       keys: ["reprise", "reprendre", "échange", "racheter"],
-      answer: "🔄 Oui, nous reprenons votre véhicule ! Contactez-nous avec les infos de votre voiture (marque, modèle, kilométrage, année) et nous vous ferons une offre."
+      answer: "🔄 Oui, nous reprenons votre véhicule à condition qu'il soit à moins de 180 000 km et moins de 10 ans ! Contactez-nous avec les infos de votre voiture."
     },
     {
       keys: ["garantie", "garanti", "panne", "sav"],
-      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie. Renseignez-vous auprès de nos conseillers pour les détails selon le véhicule choisi."
+      answer: "🛡️ Tous nos véhicules sont vendus avec une garantie possible jusqu'à 24 mois. Renseignez-vous auprès de nos conseillers pour les détails selon le véhicule choisi."
     },
     {
       keys: ["financement", "crédit", "mensualité", "prêt", "leasing"],
-      answer: "💳 Nous proposons des solutions de financement adaptées à votre budget. Contactez-nous au <strong>07 49 44 07 63</strong> pour étudier votre dossier."
+      answer: "💳 Nous ne proposons pas de financement"
     },
     {
       keys: ["livraison", "livrer", "domicile", "transport"],
