@@ -20,6 +20,7 @@ DEALER_ID   = "C054723"
 PAGE_PRO    = f"https://pros.lacentrale.fr/{DEALER_ID}"
 PAGE_PAG    = f"https://pros.lacentrale.fr/{DEALER_ID}/index?freetext_conversationid=&options=&page={{}}&vertical=car"
 DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules.json")
+VENDUS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules_vendus.json")
 PHOTOS_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 GITHUB_REPO = "autocentresas/autocentre-site"
 GITHUB_PATH = "vehicules.json"
@@ -577,18 +578,29 @@ def scraper():
     retires  = [v for v in data_initiale.get("vehicules", [])
                 if v.get("id") and v["id"] not in vus]
 
+    # Ajouter les retirés dans vehicules_vendus.json
+    if retires:
+        try:
+            if os.path.exists(VENDUS_FILE):
+                with open(VENDUS_FILE, encoding="utf-8") as f:
+                    vendus_data = json.load(f)
+            else:
+                vendus_data = {"vehicules": []}
+            ids_vendus = {v["id"] for v in vendus_data.get("vehicules", [])}
+            for v in retires:
+                if v.get("id") and v["id"] not in ids_vendus:
+                    vendus_data["vehicules"].append(v)
+            vendus_data["derniere_maj"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+            with open(VENDUS_FILE, "w", encoding="utf-8") as f:
+                json.dump(vendus_data, f, ensure_ascii=False, indent=2)
+            print(f"  {len(retires)} véhicule(s) ajouté(s) aux vendus")
+        except Exception as e:
+            print(f"  Erreur vendus : {e}")
+
     for v in nouveaux[:20]:
         print(f"  + Nouveau : {v['titre']} | {v['prix']} | {v['km']} | {v['annee']}")
     for v in retires[:10]:
         print(f"  - Retiré  : {v['titre']}")
-
-    prix_changes = []
-    for v in vehicules_en_ligne:
-        vid = v["id"]
-        if vid in ids_existants and v["prix"] and ids_existants[vid].get("prix") != v["prix"]:
-            prix_changes.append(f"{v['titre']} : {ids_existants[vid].get('prix')} → {v['prix']}")
-    for c in prix_changes[:10]:
-        print(f"  ~ Prix modifié : {c}")
 
     # ── Sauvegarde ─────────────────────────────────────────────────────────────
     data_initiale["vehicules"] = vehicules_en_ligne
@@ -606,6 +618,18 @@ def scraper():
         push_to_github(token)
     else:
         print("Aucun changement — GitHub déjà à jour.")
+
+        # Push vehicules_vendus.json
+        if os.path.exists(os.path.join(os.path.dirname(DATA_FILE), "vehicules_vendus.json")):
+            try:
+                vendus_local = os.path.join(os.path.dirname(DATA_FILE), "vehicules_vendus.json")
+                sha2 = push_file_to_github(
+                    token, headers, vendus_local, "vehicules_vendus.json",
+                    f"🏷️ Vendus mis à jour — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+                )
+                print(f"  [GitHub] ✓ vehicules_vendus.json → commit {sha2}")
+            except Exception as e:
+                print(f"  [GitHub] Erreur push vendus : {e}")
 
     return len(nouveaux)
 

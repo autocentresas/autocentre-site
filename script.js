@@ -98,59 +98,77 @@ const countObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
 
-/* ===== STOCK DYNAMIQUE — vehicules.json ===== */
+/* ===== STOCK DYNAMIQUE — vehicules.json + vehicules_vendus.json ===== */
 (function chargerStock() {
-  const section = document.getElementById('stock-section');
-  const grid    = document.getElementById('stockGrid');
-  const countEl = document.getElementById('stock-count');
-  const majEl   = document.getElementById('stock-maj');
+  const section   = document.getElementById('stock-section');
+  const grid      = document.getElementById('stockGrid');
+  const countEl   = document.getElementById('stock-count');
+  const vendusCEl = document.getElementById('vendus-count');
+  const majEl     = document.getElementById('stock-maj');
+  const tabs      = document.querySelectorAll('.stock-tab');
   if (!section || !grid) return;
 
-  fetch('vehicules.json?_=' + Date.now())
-    .then(r => r.json())
-    .then(data => {
-      const liste = data.vehicules || [];
-      if (!liste.length) return; // reste caché si vide
+  let listeStock  = [];
+  let listeVendus = [];
+  let activeTab   = 'stock';
 
-      section.style.display = 'block';
-      countEl.textContent   = liste.length + ' véhicule' + (liste.length > 1 ? 's' : '');
-      if (data.derniere_maj) {
-        majEl.textContent = 'Mis à jour le ' + data.derniere_maj;
-      }
+  function renderGrid() {
+    const liste = activeTab === 'stock' ? listeStock : listeVendus;
+    const isVendus = activeTab === 'vendus';
 
-      // Trie du plus récent au plus ancien (ordre d'insertion)
-      grid.innerHTML = liste.map((v, i) => {
-        const isNew   = i < 3;
-        const details = [v.annee, v.km, v.carburant].filter(Boolean).join(' · ');
-        // photo_local = photo hébergée sur GitHub (priorité) ; photo = URL La Centrale (fallback)
-        const imgSrc  = v.photo_local || v.photo || '';
-        const imgFb   = v.photo_local && v.photo ? escHtml(v.photo) : '';
-        const imgHtml = imgSrc
-          ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(v.titre)}" loading="lazy" referrerpolicy="no-referrer" onerror="stockImgErr(this,'${imgFb}')" />`
-          : `<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>`;
+    grid.innerHTML = liste.map((v, i) => {
+      const isNew   = !isVendus && i < 3;
+      const details = [v.annee, v.km, v.carburant].filter(Boolean).join(' · ');
+      const imgSrc  = v.photo_local || v.photo || '';
+      const imgFb   = v.photo_local && v.photo ? escHtml(v.photo) : '';
+      const imgHtml = imgSrc
+        ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(v.titre)}" loading="lazy" referrerpolicy="no-referrer" onerror="stockImgErr(this,'${imgFb}')" />`
+        : `<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>`;
 
-        return `
-          <a class="stock-card" href="${escHtml(v.url || 'https://pros.lacentrale.fr/C054723')}" target="_blank" rel="noopener">
-            <div class="stock-img">
-              ${imgHtml}
-              ${v.prix ? `<span class="stock-price">${escHtml(v.prix)}</span>` : ''}
-              ${isNew   ? `<span class="stock-badge-new">Nouveau</span>` : ''}
-            </div>
-            <div class="stock-info">
-              <h4>${escHtml(v.titre || 'Véhicule')}</h4>
-              ${details ? `<p>${escHtml(details)}</p>` : ''}
-              <span class="stock-info-link">Voir sur La Centrale →</span>
-            </div>
-          </a>`;
-      }).join('');
+      return `
+        <a class="stock-card" href="${escHtml(v.url || 'https://pros.lacentrale.fr/C054723')}" target="_blank" rel="noopener">
+          <div class="stock-img">
+            ${imgHtml}
+            ${v.prix ? `<span class="stock-price">${escHtml(v.prix)}</span>` : ''}
+            ${isNew   ? `<span class="stock-badge-new">Nouveau</span>` : ''}
+            ${isVendus ? `<span class="stock-badge-vendu"><span>VENDU</span></span>` : ''}
+          </div>
+          <div class="stock-info">
+            <h4>${escHtml(v.titre || 'Véhicule')}</h4>
+            ${details ? `<p>${escHtml(details)}</p>` : ''}
+            <span class="stock-info-link">${isVendus ? 'Voir l\'annonce →' : 'Voir sur La Centrale →'}</span>
+          </div>
+        </a>`;
+    }).join('');
 
-      // Active les animations reveal sur les nouvelles cartes
-      document.querySelectorAll('.stock-card').forEach(el => {
-        el.classList.add('reveal-up');
-        revealObserver.observe(el);
-      });
-    })
-    .catch(() => {}); // JSON absent = section reste cachée
+    document.querySelectorAll('.stock-card').forEach(el => {
+      el.classList.add('reveal-up');
+      revealObserver.observe(el);
+    });
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeTab = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderGrid();
+    });
+  });
+
+  Promise.all([
+    fetch('vehicules.json?_=' + Date.now()).then(r => r.json()).catch(() => ({ vehicules: [] })),
+    fetch('vehicules_vendus.json?_=' + Date.now()).then(r => r.json()).catch(() => ({ vehicules: [] }))
+  ]).then(([stockData, vendusData]) => {
+    listeStock  = stockData.vehicules  || [];
+    listeVendus = vendusData.vehicules || [];
+    if (!listeStock.length && !listeVendus.length) return;
+    section.style.display = 'block';
+    countEl.textContent   = listeStock.length + ' véhicule' + (listeStock.length > 1 ? 's' : '');
+    vendusCEl.textContent = listeVendus.length;
+    if (stockData.derniere_maj) majEl.textContent = 'Mis à jour le ' + stockData.derniere_maj;
+    renderGrid();
+  });
 })();
 
 function escHtml(str) {
@@ -160,7 +178,6 @@ function escHtml(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* Gestion erreur photo : tente l'URL La Centrale en fallback, sinon placeholder */
 function stockImgErr(img, fallbackUrl) {
   const placeholder = '<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>';
   if (fallbackUrl) {

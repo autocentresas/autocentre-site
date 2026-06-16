@@ -794,6 +794,41 @@ h3 { font-size: 1.2rem; }
 }
 
 .stock-more { text-align: center; margin-top: 8px; }
+.stock-tabs { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+.stock-tab {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 2px solid rgba(29,78,216,0.25);
+  background: transparent;
+  color: var(--light-gray);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font);
+}
+.stock-tab:hover { border-color: var(--blue-light); color: var(--white); }
+.stock-tab.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+.stock-badge-vendu {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0;
+}
+.stock-badge-vendu span {
+  background: var(--red);
+  color: white;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  padding: 8px 20px;
+  border-radius: 4px;
+  transform: rotate(-15deg);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
 
 .stock-empty {
   grid-column: 1/-1;
