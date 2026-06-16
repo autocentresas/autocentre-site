@@ -260,7 +260,7 @@ def scraper():
     # ── Phase 1 : Playwright — page 1 + cookies DataDome ──────────────────────
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,
+            headless=os.environ.get("CI", "false").lower() == "true",
             args=[
                 "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
