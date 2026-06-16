@@ -349,7 +349,7 @@ def scraper():
             page.wait_for_timeout(2000)
 
             # Scroll humain page 1
-            for pct in [25, 50, 75, 100, 60]:
+            for pct in [15, 30, 45, 60, 75, 90, 100, 70]:
                 page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
                 page.wait_for_timeout(random.randint(300, 600))
 
@@ -389,8 +389,11 @@ def scraper():
                     try:
                         page.goto(PAGE_PAG.format(pnum), wait_until="domcontentloaded", timeout=35000)
                         page.wait_for_timeout(random.randint(1200, 2500))
-                        page.evaluate("window.scrollTo({top: document.body.scrollHeight * 0.6, behavior: 'smooth'})")
-                        page.wait_for_timeout(random.randint(600, 1200))
+                        # Scroll progressif pour déclencher le lazy-loading de toutes les photos
+                        for pct in [20, 40, 60, 80, 100]:
+                            page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
+                            page.wait_for_timeout(random.randint(400, 700))
+                        page.wait_for_timeout(random.randint(600, 1000))
                         v = page.evaluate(EXTRACT_JS)
                         vehicules_en_ligne.extend(v)
                         print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
