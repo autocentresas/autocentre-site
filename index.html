@@ -535,6 +535,46 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
+
+  <!-- ===== CHATBOT ===== -->
+  <div id="chat-bubble" aria-label="Ouvrir le chat" role="button" tabindex="0">
+    <svg id="chat-icon-open" viewBox="0 0 24 24" fill="none">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <svg id="chat-icon-close" viewBox="0 0 24 24" fill="none" style="display:none">
+      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div id="chat-window" aria-hidden="true">
+    <div id="chat-header">
+      <div id="chat-avatar">A</div>
+      <div>
+        <div id="chat-name">Arthur</div>
+        <div id="chat-status">Assistant Autocentre</div>
+      </div>
+    </div>
+    <div id="chat-messages">
+      <div class="chat-msg bot">Bonjour ! 👋 Je suis Arthur, l'assistant Autocentre. Comment puis-je vous aider ?</div>
+      <div id="chat-suggestions">
+        <button class="chat-suggest" data-q="horaires">🕐 Horaires</button>
+        <button class="chat-suggest" data-q="adresse">📍 Adresse</button>
+        <button class="chat-suggest" data-q="vehicules">🚗 Véhicules</button>
+        <button class="chat-suggest" data-q="contact">📞 Contact</button>
+        <button class="chat-suggest" data-q="reprise">🔄 Reprise</button>
+        <button class="chat-suggest" data-q="garantie">🛡️ Garantie</button>
+      </div>
+    </div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Posez votre question…" autocomplete="off" />
+      <button id="chat-send" aria-label="Envoyer">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="chatbot.js"></script>
+</body>
 </body>
 </html>
