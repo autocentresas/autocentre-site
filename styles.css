@@ -476,7 +476,7 @@ h3 { font-size: 1.2rem; }
   padding: 120px 0;
   background: var(--navy);
 }
-.vehicules-cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; margin: 64px 0 48px; }
+.vehicules-cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; margin: 80px 0 48px; }
 .vcat-card {
   background: var(--dark2);
   border: 1px solid rgba(29,78,216,0.12);
@@ -839,7 +839,7 @@ h3 { font-size: 1.2rem; }
 
 @media (max-width: 480px) {
   .cards-grid { grid-template-columns: 1fr; }
-  .vehicules-cats { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .vehicules-cats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .section-header { margin-bottom: 40px; }
 }
 
