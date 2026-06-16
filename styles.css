@@ -514,6 +514,9 @@ h3 { font-size: 1.2rem; }
 .vcat-card h3 { font-size: 1.4rem; margin-bottom: 10px; }
 .vcat-card p { color: var(--light-gray); margin-bottom: 28px; font-size: 0.95rem; }
 .vcat-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.vcat-brands { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+.vcat-brands svg { height: 30px; width: auto; max-width: 80px; color: var(--blue-light); opacity: 0.75; transition: opacity var(--transition); }
+.vcat-card:hover .vcat-brands svg { opacity: 1; }
 
 .vehicules-cta {
   text-align: center;
