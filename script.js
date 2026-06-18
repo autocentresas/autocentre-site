@@ -132,9 +132,9 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
             ${imgHtml}
             ${v.prix ? `<span class="stock-price">${escHtml(v.prix)}</span>` : ''}
             ${isNew   ? `<span class="stock-badge-new">Nouveau</span>` : ''}
-            ${isVendus ? `<span class="stock-badge-vendu">VENDU</span>` : ''}
           </div>
           <div class="stock-info">
+            ${isVendus ? `<span class="stock-badge-vendu-stars">★★★★★</span>` : ''}
             <h4>${escHtml(v.titre || 'Véhicule')}</h4>
             ${details ? `<p>${escHtml(details)}</p>` : ''}
             <span class="stock-info-link">${isVendus ? 'Voir l\'annonce →' : 'Voir sur La Centrale →'}</span>
