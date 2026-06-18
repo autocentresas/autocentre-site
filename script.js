@@ -229,3 +229,21 @@ const sectionObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.4 });
 
 sections.forEach(s => sectionObserver.observe(s));
+
+/* ===== THEME TOGGLE ===== */
+(function() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    btn.style.color = '#1d4ed8';
+  }
+
+  btn.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    btn.style.color = isLight ? '#1d4ed8' : '';
+  });
+})();

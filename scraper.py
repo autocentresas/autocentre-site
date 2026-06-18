@@ -579,23 +579,28 @@ def scraper():
                 if v.get("id") and v["id"] not in vus]
 
     # Ajouter les retirés dans vehicules_vendus.json
+    retires  = [v for v in data_initiale.get("vehicules", [])
+                if v.get("id") and v["id"] not in vus]
+
+    # Ajouter les véhicules retirés dans vehicules_vendus.json automatiquement
     if retires:
+        vendus_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules_vendus.json")
         try:
-            if os.path.exists(VENDUS_FILE):
-                with open(VENDUS_FILE, encoding="utf-8") as f:
-                    vendus_data = json.load(f)
+            if os.path.exists(vendus_file):
+                with open(vendus_file, encoding="utf-8") as fv:
+                    vendus_data = json.load(fv)
             else:
                 vendus_data = {"vehicules": []}
-            ids_vendus = {v["id"] for v in vendus_data.get("vehicules", [])}
-            for v in retires:
-                if v.get("id") and v["id"] not in ids_vendus:
-                    vendus_data["vehicules"].append(v)
-            vendus_data["derniere_maj"] = datetime.now().strftime("%d/%m/%Y %H:%M")
-            with open(VENDUS_FILE, "w", encoding="utf-8") as f:
-                json.dump(vendus_data, f, ensure_ascii=False, indent=2)
-            print(f"  {len(retires)} véhicule(s) ajouté(s) aux vendus")
+            ids_deja_vendus = {v["id"] for v in vendus_data["vehicules"] if v.get("id")}
+            nouveaux_vendus = [v for v in retires if v.get("id") and v["id"] not in ids_deja_vendus]
+            if nouveaux_vendus:
+                vendus_data["vehicules"].extend(nouveaux_vendus)
+                vendus_data["derniere_maj"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                with open(vendus_file, "w", encoding="utf-8") as fv:
+                    json.dump(vendus_data, fv, ensure_ascii=False, indent=2)
+                print(f"  {len(nouveaux_vendus)} véhicule(s) déplacé(s) vers vendus automatiquement")
         except Exception as e:
-            print(f"  Erreur vendus : {e}")
+            print(f"  Erreur mise à jour vendus : {e}")
 
     for v in nouveaux[:20]:
         print(f"  + Nouveau : {v['titre']} | {v['prix']} | {v['km']} | {v['annee']}")
