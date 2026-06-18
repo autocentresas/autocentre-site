@@ -1132,3 +1132,92 @@ body.light .contact-info h3 { color: #0c1829 !important; }
 body.light .contact-info p  { color: #4b5e80 !important; }
 body.light .social-links a  { color: #1e3258 !important; }
 body.light .social-links a:hover { color: var(--blue) !important; }
+
+/* ===== RESPONSIVE MOBILE COMPLÉMENTAIRE ===== */
+
+/* Titre hero trop grand sur téléphone */
+@media (max-width: 480px) {
+  .hero-brand {
+    font-size: clamp(1.8rem, 10vw, 3.5rem);
+    letter-spacing: 0.03em;
+  }
+  .hero-content {
+    padding: 100px 16px 100px;
+  }
+  .hero-title {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+  .hero-sub {
+    font-size: 0.9rem;
+  }
+  .hero-badge {
+    font-size: 0.7rem;
+    padding: 6px 14px;
+  }
+
+  /* Véhicules catégories : 1 colonne sur très petit écran */
+  .vehicules-cats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .vcat-card {
+    padding: 24px 20px;
+  }
+
+  /* Cards points forts */
+  .card {
+    padding: 24px 20px;
+  }
+
+  /* Section header moins de marge */
+  .section-header {
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: clamp(1.4rem, 6vw, 2rem);
+  }
+
+  /* Contact form */
+  .contact-form {
+    padding: 20px 16px;
+  }
+
+  /* Slider dots remonter sur mobile */
+  .slider-dots {
+    bottom: 40px;
+  }
+
+  /* Footer */
+  .footer-inner {
+    padding: 0 16px 32px;
+    gap: 24px;
+  }
+
+  /* Service items */
+  .service-item {
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px 0;
+  }
+  .service-num {
+    font-size: 1.4rem;
+    min-width: unset;
+  }
+
+  /* Boutons hero */
+  .hero-actions .btn {
+    padding: 12px 24px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Navbar logo visible sur mobile */
+@media (max-width: 768px) {
+  .nav-inner {
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+  .hero-brand {
+    font-size: clamp(2rem, 11vw, 4rem);
+  }
+}
