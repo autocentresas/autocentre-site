@@ -1,5 +1,5 @@
 {
-  "derniere_maj": "18/06/2026 10:33",
+  "derniere_maj": "18/06/2026 10:48",
   "vehicules": [
     {
       "id": "87103442943",
@@ -2008,7 +2008,8 @@
       "km": "90 600 km",
       "annee": "2015",
       "carburant": "Essence",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103483326.jpg"
     },
     {
       "id": "87103488245",
@@ -2020,7 +2021,8 @@
       "km": "111 900 km",
       "annee": "2019",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103488245.jpg"
     },
     {
       "id": "87103483334",
@@ -2032,7 +2034,8 @@
       "km": "72 800 km",
       "annee": "2017",
       "carburant": "Essence",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103483334.jpg"
     },
     {
       "id": "87103445731",
@@ -2044,7 +2047,8 @@
       "km": "70 000 km",
       "annee": "2020",
       "carburant": "Diesel",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103445731.jpg"
     },
     {
       "id": "87103491628",
@@ -2056,7 +2060,8 @@
       "km": "6 400 km",
       "annee": "2018",
       "carburant": "Essence",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103491628.jpg"
     },
     {
       "id": "87103491618",
@@ -2068,7 +2073,8 @@
       "km": "112 000 km",
       "annee": "2021",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103491618.jpg"
     },
     {
       "id": "87103480325",
@@ -2093,7 +2099,8 @@
       "km": "73 000 km",
       "annee": "2023",
       "carburant": "Hybrides",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103428209.jpg"
     },
     {
       "id": "87103491617",
@@ -2105,7 +2112,8 @@
       "km": "78 500 km",
       "annee": "2020",
       "carburant": "Essence",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103491617.jpg"
     },
     {
       "id": "87103464835",
@@ -2117,7 +2125,8 @@
       "km": "99 000 km",
       "annee": "2019",
       "carburant": "Essence",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103464835.jpg"
     },
     {
       "id": "87103442942",
@@ -2129,7 +2138,8 @@
       "km": "99 000 km",
       "annee": "2022",
       "carburant": "Diesel",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103442942.jpg"
     },
     {
       "id": "87103434643",
@@ -2141,7 +2151,8 @@
       "km": "62 000 km",
       "annee": "2022",
       "carburant": "Hybrides",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103434643.jpg"
     },
     {
       "id": "87103244374",
@@ -2153,7 +2164,8 @@
       "km": "92 000 km",
       "annee": "2022",
       "carburant": "Diesel",
-      "boite": "Manuelle"
+      "boite": "Manuelle",
+      "photo_local": "photos/87103244374.jpg"
     },
     {
       "id": "87103437605",
@@ -2165,7 +2177,8 @@
       "km": "111 000 km",
       "annee": "2020",
       "carburant": "Diesel",
-      "boite": "Auto"
+      "boite": "Auto",
+      "photo_local": "photos/87103437605.jpg"
     }
   ]
 }
