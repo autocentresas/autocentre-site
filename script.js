@@ -103,19 +103,20 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
   const section   = document.getElementById('stock-section');
   const grid      = document.getElementById('stockGrid');
   const countEl   = document.getElementById('stock-count');
-  const vendusCEl = document.getElementById('vendus-count');
+  const vendusEl  = document.getElementById('vendus-count');
   const majEl     = document.getElementById('stock-maj');
   const tabs      = document.querySelectorAll('.stock-tab');
   if (!section || !grid) return;
 
   let listeStock  = [];
   let listeVendus = [];
-  let activeTab   = 'stock';
+  let ongletActif = 'stock';
 
-  function renderGrid() {
-    const liste = activeTab === 'stock' ? listeStock : listeVendus;
-    const isVendus = activeTab === 'vendus';
-
+  function renderGrid(liste, isVendus) {
+    if (!liste.length) {
+      grid.innerHTML = '<p class="stock-empty">Aucun véhicule.</p>';
+      return;
+    }
     grid.innerHTML = liste.map((v, i) => {
       const isNew   = !isVendus && i < 3;
       const details = [v.annee, v.km, v.carburant].filter(Boolean).join(' · ');
@@ -126,12 +127,12 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
         : `<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>`;
 
       return `
-        <a class="stock-card" href="${escHtml(v.url || 'https://pros.lacentrale.fr/C054723')}" target="_blank" rel="noopener">
+        <a class="stock-card${isVendus ? ' stock-card-vendu' : ''}" href="${escHtml(v.url || 'https://pros.lacentrale.fr/C054723')}" target="_blank" rel="noopener">
           <div class="stock-img">
             ${imgHtml}
             ${v.prix ? `<span class="stock-price">${escHtml(v.prix)}</span>` : ''}
             ${isNew   ? `<span class="stock-badge-new">Nouveau</span>` : ''}
-            ${isVendus ? `<span class="stock-badge-vendu"><span>VENDU</span></span>` : ''}
+            ${isVendus ? `<span class="stock-badge-vendu">VENDU</span>` : ''}
           </div>
           <div class="stock-info">
             <h4>${escHtml(v.titre || 'Véhicule')}</h4>
@@ -147,27 +148,33 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
     });
   }
 
+  // Onglets
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      activeTab = tab.dataset.tab;
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      renderGrid();
+      ongletActif = tab.dataset.tab;
+      if (ongletActif === 'stock') renderGrid(listeStock, false);
+      else renderGrid(listeVendus, true);
     });
   });
 
+  // Chargement des deux JSON en parallèle
   Promise.all([
     fetch('vehicules.json?_=' + Date.now()).then(r => r.json()).catch(() => ({ vehicules: [] })),
     fetch('vehicules_vendus.json?_=' + Date.now()).then(r => r.json()).catch(() => ({ vehicules: [] }))
-  ]).then(([stockData, vendusData]) => {
-    listeStock  = stockData.vehicules  || [];
-    listeVendus = vendusData.vehicules || [];
+  ]).then(([dataStock, dataVendus]) => {
+    listeStock  = dataStock.vehicules  || [];
+    listeVendus = dataVendus.vehicules || [];
+
     if (!listeStock.length && !listeVendus.length) return;
+
     section.style.display = 'block';
-    countEl.textContent   = listeStock.length + ' véhicule' + (listeStock.length > 1 ? 's' : '');
-    vendusCEl.textContent = listeVendus.length;
-    if (stockData.derniere_maj) majEl.textContent = 'Mis à jour le ' + stockData.derniere_maj;
-    renderGrid();
+    if (countEl)  countEl.textContent  = listeStock.length  + ' véhicule' + (listeStock.length  > 1 ? 's' : '');
+    if (vendusEl) vendusEl.textContent = listeVendus.length + ' véhicule' + (listeVendus.length > 1 ? 's' : '');
+    if (dataStock.derniere_maj && majEl) majEl.textContent = 'Mis à jour le ' + dataStock.derniere_maj;
+
+    renderGrid(listeStock, false);
   });
 })();
 
@@ -178,6 +185,7 @@ function escHtml(str) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* Gestion erreur photo : tente l'URL La Centrale en fallback, sinon placeholder */
 function stockImgErr(img, fallbackUrl) {
   const placeholder = '<div class="stock-img-placeholder"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M14 30l6-10 5 7 3-4 6 7H14z" stroke="currentColor" stroke-width="2"/></svg></div>';
   if (fallbackUrl) {
@@ -188,6 +196,21 @@ function stockImgErr(img, fallbackUrl) {
     img.outerHTML = placeholder;
   }
 }
+
+/* ===== THEME TOGGLE ===== */
+(function() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    btn.style.color = '#1d4ed8';
+  }
+  btn.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    btn.style.color = isLight ? '#1d4ed8' : '';
+  });
+})();
 
 /* ===== CONTACT FORM (simulation) ===== */
 const form = document.getElementById('contact-form');
@@ -229,21 +252,3 @@ const sectionObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.4 });
 
 sections.forEach(s => sectionObserver.observe(s));
-
-/* ===== THEME TOGGLE ===== */
-(function() {
-  const btn = document.getElementById('theme-toggle');
-  if (!btn) return;
-
-  const saved = localStorage.getItem('theme');
-  if (saved === 'light') {
-    document.body.classList.add('light');
-    btn.style.color = '#1d4ed8';
-  }
-
-  btn.addEventListener('click', () => {
-    const isLight = document.body.classList.toggle('light');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-    btn.style.color = isLight ? '#1d4ed8' : '';
-  });
-})();

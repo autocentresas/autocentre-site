@@ -1005,6 +1005,48 @@ h3 { font-size: 1.2rem; }
   #chat-window { width: calc(100vw - 20px); right: 10px; }
 }
 
+/* ===== ONGLETS STOCK / VENDUS ===== */
+.stock-tabs-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.stock-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 2px solid rgba(29,78,216,0.2);
+  background: transparent;
+  color: var(--light-gray);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font);
+}
+.stock-tab:hover { border-color: var(--blue); color: var(--white); }
+.stock-tab.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+/* Bannière VENDU */
+.stock-badge-vendu {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #fff;
+  border-radius: 0;
+}
+.stock-card-vendu { opacity: 0.85; }
+.stock-card-vendu:hover { opacity: 1; }
+
 /* ===== THEME TOGGLE ===== */
 #theme-toggle {
   background: none;
