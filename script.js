@@ -129,6 +129,7 @@ document.querySelectorAll('.count-up').forEach(el => countObserver.observe(el));
       return `
         <a class="stock-card${isVendus ? ' stock-card-vendu' : ''}" href="${escHtml(v.url || 'https://pros.lacentrale.fr/C054723')}" target="_blank" rel="noopener">
           <div class="stock-img">
+            ${isVendus ? `<span class="stock-badge-vendu">VENDU</span>` : ''}
             ${imgHtml}
             ${v.prix ? `<span class="stock-price">${escHtml(v.prix)}</span>` : ''}
             ${isNew   ? `<span class="stock-badge-new">Nouveau</span>` : ''}
