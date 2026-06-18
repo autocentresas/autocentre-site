@@ -1032,13 +1032,14 @@ h3 { font-size: 1.2rem; }
   border-radius: 8px;
   color: var(--white);
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
   transition: var(--transition);
-  margin-left: 8px;
+  margin-left: 20px;
 }
 #theme-toggle:hover { border-color: var(--blue-light); color: var(--blue-light); }
+body.light #theme-toggle { border-color: rgba(0,0,0,0.2); color: #0c1829; }
 
 /* ===== LIGHT MODE ===== */
 body.light {
