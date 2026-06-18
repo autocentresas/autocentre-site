@@ -20,7 +20,6 @@ DEALER_ID   = "C054723"
 PAGE_PRO    = f"https://pros.lacentrale.fr/{DEALER_ID}"
 PAGE_PAG    = f"https://pros.lacentrale.fr/{DEALER_ID}/index?freetext_conversationid=&options=&page={{}}&vertical=car"
 DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules.json")
-VENDUS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules_vendus.json")
 PHOTOS_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
 GITHUB_REPO = "autocentresas/autocentre-site"
 GITHUB_PATH = "vehicules.json"
@@ -57,14 +56,14 @@ def nettoyer_km(txt):
 
 def get_github_token():
     token = os.environ.get("GITHUB_TOKEN", "").strip()
-    if token and token.startswith("ghp_"):
+    if token:
         return token
     token_file = os.path.expanduser("~/.autocentre_token")
     if os.path.exists(token_file):
         try:
             with open(token_file) as f:
                 token = f.read().strip()
-            if token.startswith("ghp_"):
+            if token:
                 return token
         except Exception:
             pass
@@ -349,7 +348,7 @@ def scraper():
 
             page.wait_for_timeout(2000)
 
-            # Scroll humain page 1
+            # Scroll progressif page 1 pour déclencher lazy-loading de toutes les photos
             for pct in [15, 30, 45, 60, 75, 90, 100, 70]:
                 page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
                 page.wait_for_timeout(random.randint(300, 600))
@@ -383,32 +382,34 @@ def scraper():
             print(f"  Pages détectées : {sorted(page_nums)} → {max_page} pages au total")
 
             # ── Phase 2b : Playwright pages 2+ (même session navigateur) ─────────
-            if max_page >= 2:
-                print(f"\n[Phase 2b] Playwright pages 2 à {max_page} (même navigateur)…")
-                vides_consec = 0
-                for pnum in range(2, max_page + 1):
-                    try:
-                        page.goto(PAGE_PAG.format(pnum), wait_until="domcontentloaded", timeout=35000)
-                        page.wait_for_timeout(random.randint(1200, 2500))
-                        # Scroll progressif pour déclencher le lazy-loading de toutes les photos
-                        for pct in [20, 40, 60, 80, 100]:
-                            page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
-                            page.wait_for_timeout(random.randint(400, 700))
-                        page.wait_for_timeout(random.randint(600, 1000))
-                        v = page.evaluate(EXTRACT_JS)
-                        vehicules_en_ligne.extend(v)
-                        print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
-                        if len(v) == 0:
-                            vides_consec += 1
-                            if vides_consec >= 2:
-                                print(f"  Fin des annonces à la page {pnum - 1}")
-                                break
-                        else:
-                            vides_consec = 0
-                        time.sleep(random.uniform(2.5, 5.0))
-                    except Exception as e:
-                        print(f"  Page {pnum:2d} : erreur Playwright — {e}")
-                        break
+            # On ne se base PAS sur max_page (peut rater les dernières pages)
+            # On avance jusqu'à trouver 2 pages vides consécutives
+            print(f"\n[Phase 2b] Playwright pages suivantes (même navigateur)…")
+            vides_consec = 0
+            pnum = 2
+            while pnum <= 60:  # sécurité max 60 pages
+                try:
+                    page.goto(PAGE_PAG.format(pnum), wait_until="domcontentloaded", timeout=35000)
+                    page.wait_for_timeout(random.randint(1200, 2500))
+                    for pct in [20, 40, 60, 80, 100]:
+                        page.evaluate(f"window.scrollTo({{top: document.body.scrollHeight * {pct/100}, behavior: 'smooth'}})")
+                        page.wait_for_timeout(random.randint(400, 700))
+                    page.wait_for_timeout(random.randint(600, 1000))
+                    v = page.evaluate(EXTRACT_JS)
+                    vehicules_en_ligne.extend(v)
+                    print(f"  Page {pnum:2d} : {len(v):3d} annonces | total : {len(vehicules_en_ligne)}")
+                    if len(v) == 0:
+                        vides_consec += 1
+                        if vides_consec >= 2:
+                            print(f"  Fin des annonces détectée à la page {pnum - 1}")
+                            break
+                    else:
+                        vides_consec = 0
+                    pnum += 1
+                    time.sleep(random.uniform(2.5, 5.0))
+                except Exception as e:
+                    print(f"  Page {pnum:2d} : erreur Playwright — {e}")
+                    break
 
         except PWTimeout:
             print("  Timeout chargement initial")
@@ -448,8 +449,8 @@ def scraper():
             print("   Aucune nouvelle photo — aucun changement.")
         return 0
 
-    # ── Phase 2 : curl-cffi — pages 2 à max_page ──────────────────────────────
-    if max_page >= 2 and session_cookies:
+    # ── Phase 2 : curl-cffi — désactivé (Phase 2b Playwright couvre déjà toutes les pages) ──
+    if False and max_page >= 2 and session_cookies:
         print(f"\n[Phase 2] curl-cffi pour pages 2 à {max_page} (cookies navigateur)…")
 
         try:
@@ -578,34 +579,38 @@ def scraper():
     retires  = [v for v in data_initiale.get("vehicules", [])
                 if v.get("id") and v["id"] not in vus]
 
-    # Ajouter les retirés dans vehicules_vendus.json
-    retires  = [v for v in data_initiale.get("vehicules", [])
-                if v.get("id") and v["id"] not in vus]
-
-    # Ajouter les véhicules retirés dans vehicules_vendus.json automatiquement
-    if retires:
-        vendus_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules_vendus.json")
-        try:
-            if os.path.exists(vendus_file):
-                with open(vendus_file, encoding="utf-8") as fv:
-                    vendus_data = json.load(fv)
-            else:
-                vendus_data = {"vehicules": []}
-            ids_deja_vendus = {v["id"] for v in vendus_data["vehicules"] if v.get("id")}
-            nouveaux_vendus = [v for v in retires if v.get("id") and v["id"] not in ids_deja_vendus]
-            if nouveaux_vendus:
-                vendus_data["vehicules"].extend(nouveaux_vendus)
-                vendus_data["derniere_maj"] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                with open(vendus_file, "w", encoding="utf-8") as fv:
-                    json.dump(vendus_data, fv, ensure_ascii=False, indent=2)
-                print(f"  {len(nouveaux_vendus)} véhicule(s) déplacé(s) vers vendus automatiquement")
-        except Exception as e:
-            print(f"  Erreur mise à jour vendus : {e}")
-
     for v in nouveaux[:20]:
         print(f"  + Nouveau : {v['titre']} | {v['prix']} | {v['km']} | {v['annee']}")
     for v in retires[:10]:
         print(f"  - Retiré  : {v['titre']}")
+
+    # ── Transfert automatique des retirés → vehicules_vendus.json ─────────────
+    if retires:
+        vendus_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vehicules_vendus.json")
+        try:
+            if os.path.exists(vendus_file):
+                with open(vendus_file, encoding="utf-8") as f:
+                    vendus_data = json.load(f)
+            else:
+                vendus_data = {"vehicules": []}
+            ids_deja_vendus = {v["id"] for v in vendus_data.get("vehicules", []) if v.get("id")}
+            nouveaux_vendus = [v for v in retires if v.get("id") and v["id"] not in ids_deja_vendus]
+            if nouveaux_vendus:
+                vendus_data["vehicules"].extend(nouveaux_vendus)
+                vendus_data["derniere_maj"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                with open(vendus_file, "w", encoding="utf-8") as f:
+                    json.dump(vendus_data, f, ensure_ascii=False, indent=2)
+                print(f"  → {len(nouveaux_vendus)} véhicule(s) transféré(s) vers vehicules_vendus.json")
+        except Exception as e:
+            print(f"  Erreur mise à jour vendus : {e}")
+
+    prix_changes = []
+    for v in vehicules_en_ligne:
+        vid = v["id"]
+        if vid in ids_existants and v["prix"] and ids_existants[vid].get("prix") != v["prix"]:
+            prix_changes.append(f"{v['titre']} : {ids_existants[vid].get('prix')} → {v['prix']}")
+    for c in prix_changes[:10]:
+        print(f"  ~ Prix modifié : {c}")
 
     # ── Sauvegarde ─────────────────────────────────────────────────────────────
     data_initiale["vehicules"] = vehicules_en_ligne
@@ -623,18 +628,6 @@ def scraper():
         push_to_github(token)
     else:
         print("Aucun changement — GitHub déjà à jour.")
-
-        # Push vehicules_vendus.json
-        if os.path.exists(os.path.join(os.path.dirname(DATA_FILE), "vehicules_vendus.json")):
-            try:
-                vendus_local = os.path.join(os.path.dirname(DATA_FILE), "vehicules_vendus.json")
-                sha2 = push_file_to_github(
-                    token, headers, vendus_local, "vehicules_vendus.json",
-                    f"🏷️ Vendus mis à jour — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-                )
-                print(f"  [GitHub] ✓ vehicules_vendus.json → commit {sha2}")
-            except Exception as e:
-                print(f"  [GitHub] Erreur push vendus : {e}")
 
     return len(nouveaux)
 
