@@ -471,6 +471,27 @@ h3 { font-size: 1.2rem; }
 .card h3 { margin-bottom: 10px; font-size: 1.05rem; }
 .card p { color: var(--light-gray); font-size: 0.9rem; line-height: 1.65; }
 
+/* ===== QUI SOMMES-NOUS ===== */
+#qui-sommes-nous {
+  padding: 120px 0;
+  background: var(--dark);
+}
+.qsn-video-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 48px;
+}
+.qsn-video-wrap iframe {
+  width: 340px;
+  height: 600px;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+}
+@media (max-width: 480px) {
+  .qsn-video-wrap iframe { width: 100%; height: 520px; }
+}
+
 /* ===== VÉHICULES ===== */
 #vehicules {
   padding: 120px 0;
