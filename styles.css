@@ -1006,7 +1006,7 @@ h3 { font-size: 1.2rem; }
 }
 
 /* ===== ONGLETS STOCK / VENDUS ===== */
-.stock-tabs-bar {
+.stock-tabs {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
